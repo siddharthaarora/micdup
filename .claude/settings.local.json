@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet:*)",
+      "Bash(where:*)",
+      "Bash(cmd.exe /c dotnet --version)",
+      "Bash(cmd.exe /c \"dotnet --version\")",
+      "Bash(cmd.exe /c \"where dotnet.exe 2>nul || echo Not in PATH\")",
+      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" build)"
+    ]
+  }
+}

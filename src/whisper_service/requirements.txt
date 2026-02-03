@@ -1,0 +1,9 @@
+# OpenAI Whisper
+openai-whisper>=20231117
+
+# PyTorch (CPU version for compatibility, GPU version can be installed separately)
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Additional dependencies
+numpy>=1.24.0

@@ -1,0 +1,67 @@
+# .NET build outputs
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+
+# Visual Studio
+.vs/
+*.vsidx
+*.vspscc
+
+# Rider
+.idea/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+
+# NuGet Packages
+*.nupkg
+packages/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Whisper models (large files)
+models/
+*.pt
+*.bin
+
+# Logs
+logs/
+*.log
+
+# User settings
+appsettings.Development.json
+appsettings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.wav
+
+# IDE
+*.swp
+*.swo
+*~
