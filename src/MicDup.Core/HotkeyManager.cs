@@ -87,6 +87,17 @@ public class HotkeyManager : IDisposable
         }
     }
 
+    /// <summary>
+    /// Unregisters current hotkey and registers a new one
+    /// </summary>
+    public bool ReregisterHotkey(ModifierKeys modifiers, Keys key)
+    {
+        UnregisterHotkey();
+        _window?.Dispose();
+        _window = null;
+        return RegisterHotkey(modifiers, key);
+    }
+
     public void Dispose()
     {
         UnregisterHotkey();

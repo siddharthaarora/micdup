@@ -5,5 +5,9 @@ openai-whisper>=20231117
 torch>=2.0.0
 torchaudio>=2.0.0
 
+# Optional: GPU/NPU acceleration (install one if applicable)
+# pip install torch-directml        # Intel/AMD/Qualcomm GPU/NPU on Windows
+# For CUDA: install PyTorch with CUDA from https://pytorch.org/get-started/locally/
+
 # Additional dependencies
 numpy>=1.24.0

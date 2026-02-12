@@ -32,23 +32,19 @@ class Program
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Calculate path to whisper service script
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var whisperScriptPath = Path.GetFullPath(
-                Path.Combine(baseDir, "..", "..", "..", "..", "..", "whisper_service", "whisper_service.py"));
+            // Load settings
+            var settingsManager = new SettingsManager();
+            settingsManager.Load();
 
-            Log.Information("Whisper script path: {ScriptPath}", whisperScriptPath);
-
-            // Initialize Whisper engine
+            // Initialize Whisper engine from settings
+            var settings = settingsManager.Settings;
             var whisperEngine = new WhisperEngine(
-                pythonPath: "python",
-                scriptPath: whisperScriptPath,
-                modelName: "base",
-                language: "en"
+                modelName: settings.Whisper.Model,
+                language: settings.Whisper.Language
             );
 
             // Create application context and run message loop
-            using var appContext = new MicDupApplicationContext(whisperEngine);
+            using var appContext = new MicDupApplicationContext(whisperEngine, settingsManager);
             Application.Run(appContext);
 
             Log.Information("Application shutting down...");

@@ -11,14 +11,17 @@ public class AppController : IDisposable
     private readonly TrayManager _trayManager;
     private readonly HotkeyManager _hotkeyManager;
     private readonly WhisperEngine _whisperEngine;
+    private readonly SettingsManager _settingsManager;
     private AudioRecorder? _audioRecorder;
     private string? _currentRecordingPath;
     private AppState _state = AppState.Idle;
-    private bool _autoPasteEnabled = true;
+    private bool _autoPasteEnabled;
 
-    public AppController(WhisperEngine whisperEngine)
+    public AppController(WhisperEngine whisperEngine, SettingsManager settingsManager)
     {
         _whisperEngine = whisperEngine;
+        _settingsManager = settingsManager;
+        _autoPasteEnabled = settingsManager.Settings.Behavior.AutoPaste;
         _trayManager = new TrayManager();
         _hotkeyManager = new HotkeyManager();
     }
@@ -35,6 +38,7 @@ public class AppController : IDisposable
             // Initialize system tray
             _trayManager.Initialize();
             _trayManager.StartStopClicked += OnStartStopClicked;
+            _trayManager.SettingsClicked += OnSettingsClicked;
             _trayManager.ExitClicked += OnExitClicked;
             _trayManager.SetState(TrayState.Idle);
 
@@ -46,10 +50,11 @@ public class AppController : IDisposable
                 return false;
             }
 
-            // Register global hotkey (CTRL+SHIFT+SPACE)
-            var hotkeyRegistered = _hotkeyManager.RegisterHotkey(
-                ModifierKeys.Control | ModifierKeys.Shift,
-                Keys.Space);
+            // Register global hotkey from settings
+            var hotkeySettings = _settingsManager.Settings.Hotkey;
+            var modifiers = SettingsManager.ParseModifiers(hotkeySettings.Modifiers);
+            var key = SettingsManager.ParseKey(hotkeySettings.Key);
+            var hotkeyRegistered = _hotkeyManager.RegisterHotkey(modifiers, key);
 
             if (!hotkeyRegistered)
             {
@@ -79,6 +84,25 @@ public class AppController : IDisposable
     {
         Log.Debug("Start/Stop clicked, current state: {State}", _state);
         ToggleRecording();
+    }
+
+    private void OnSettingsClicked(object? sender, EventArgs e)
+    {
+        Log.Information("Settings requested");
+        using var form = new SettingsForm(_settingsManager);
+        if (form.ShowDialog() == DialogResult.OK)
+        {
+            // Re-register hotkey with new settings
+            var hotkeySettings = _settingsManager.Settings.Hotkey;
+            var modifiers = SettingsManager.ParseModifiers(hotkeySettings.Modifiers);
+            var key = SettingsManager.ParseKey(hotkeySettings.Key);
+            _hotkeyManager.ReregisterHotkey(modifiers, key);
+
+            // Update behavior
+            _autoPasteEnabled = _settingsManager.Settings.Behavior.AutoPaste;
+
+            Log.Information("Settings applied");
+        }
     }
 
     private void OnExitClicked(object? sender, EventArgs e)
@@ -232,6 +256,7 @@ public class AppController : IDisposable
         _audioRecorder?.Dispose();
         _hotkeyManager?.Dispose();
         _trayManager?.Dispose();
+        _whisperEngine?.Dispose();
         Log.Information("AppController disposed");
     }
 }

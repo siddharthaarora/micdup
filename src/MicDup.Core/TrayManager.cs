@@ -19,6 +19,7 @@ public class TrayManager : IDisposable
     private TrayState _currentState = TrayState.Idle;
 
     public event EventHandler? StartStopClicked;
+    public event EventHandler? SettingsClicked;
     public event EventHandler? ExitClicked;
 
     public void Initialize()
@@ -36,7 +37,8 @@ public class TrayManager : IDisposable
             _startStopItem = new ToolStripMenuItem("Start Recording");
             _startStopItem.Click += (s, e) => StartStopClicked?.Invoke(this, EventArgs.Empty);
 
-            var separator = new ToolStripSeparator();
+            var settingsItem = new ToolStripMenuItem("Settings...");
+            settingsItem.Click += (s, e) => SettingsClicked?.Invoke(this, EventArgs.Empty);
 
             _exitItem = new ToolStripMenuItem("Exit");
             _exitItem.Click += (s, e) => ExitClicked?.Invoke(this, EventArgs.Empty);
@@ -44,9 +46,11 @@ public class TrayManager : IDisposable
             _contextMenu.Items.AddRange(new ToolStripItem[]
             {
                 _statusItem,
-                separator,
+                new ToolStripSeparator(),
                 _startStopItem,
-                separator,
+                new ToolStripSeparator(),
+                settingsItem,
+                new ToolStripSeparator(),
                 _exitItem
             });
 

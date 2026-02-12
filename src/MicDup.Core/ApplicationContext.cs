@@ -10,10 +10,12 @@ public class MicDupApplicationContext : ApplicationContext
 {
     private AppController? _appController;
     private readonly WhisperEngine _whisperEngine;
+    private readonly SettingsManager _settingsManager;
 
-    public MicDupApplicationContext(WhisperEngine whisperEngine)
+    public MicDupApplicationContext(WhisperEngine whisperEngine, SettingsManager settingsManager)
     {
         _whisperEngine = whisperEngine;
+        _settingsManager = settingsManager;
         InitializeAsync().ConfigureAwait(false);
     }
 
@@ -23,7 +25,7 @@ public class MicDupApplicationContext : ApplicationContext
         {
             Log.Information("Initializing MicDup application context...");
 
-            _appController = new AppController(_whisperEngine);
+            _appController = new AppController(_whisperEngine, _settingsManager);
 
             var initialized = await _appController.InitializeAsync();
 

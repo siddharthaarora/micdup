@@ -1,113 +1,85 @@
-using System.Diagnostics;
-using System.Text;
 using Serilog;
+using Whisper.net;
+using Whisper.net.Ggml;
 
 namespace MicDup.Core;
 
 /// <summary>
-/// Interfaces with Python Whisper service to transcribe audio files
+/// In-process Whisper transcription engine using Whisper.net (whisper.cpp wrapper).
+/// Auto-downloads the GGML model on first use.
 /// </summary>
-public class WhisperEngine
+public class WhisperEngine : IDisposable
 {
-    private readonly string _pythonPath;
-    private readonly string _scriptPath;
+    private static readonly string ModelsDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "MicDup", "Models");
+
     private readonly string _modelName;
     private readonly string? _language;
-    private readonly int _timeoutSeconds;
+    private WhisperFactory? _factory;
+    private bool _initialized;
 
-    public WhisperEngine(
-        string pythonPath = "python",
-        string? scriptPath = null,
-        string modelName = "base",
-        string? language = null,
-        int timeoutSeconds = 60)
+    public WhisperEngine(string modelName = "base", string? language = null)
     {
-        _pythonPath = pythonPath;
-        _scriptPath = scriptPath ?? Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "whisper_service", "whisper_service.py");
         _modelName = modelName;
         _language = language;
-        _timeoutSeconds = timeoutSeconds;
-
-        Log.Information("WhisperEngine initialized with model: {Model}, language: {Language}",
+        Log.Information("WhisperEngine created with model: {Model}, language: {Language}",
             _modelName, _language ?? "auto-detect");
     }
 
     /// <summary>
-    /// Transcribes an audio file using Whisper
+    /// Ensures the model is downloaded and the factory is ready
     /// </summary>
-    /// <param name="audioFilePath">Path to the audio file (WAV, MP3, etc.)</param>
-    /// <returns>Transcribed text</returns>
+    public async Task<bool> CheckAvailabilityAsync()
+    {
+        try
+        {
+            var modelPath = await EnsureModelDownloadedAsync();
+            _factory = WhisperFactory.FromPath(modelPath);
+            _initialized = true;
+            Log.Information("Whisper model loaded successfully from {Path}", modelPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to initialize Whisper engine");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Transcribes an audio file (16kHz mono 16-bit WAV)
+    /// </summary>
     public async Task<string> TranscribeAsync(string audioFilePath)
     {
+        if (!_initialized || _factory == null)
+            throw new InvalidOperationException("WhisperEngine not initialized. Call CheckAvailabilityAsync first.");
+
         if (!File.Exists(audioFilePath))
-        {
             throw new FileNotFoundException($"Audio file not found: {audioFilePath}");
-        }
 
         try
         {
             Log.Information("Starting transcription of: {AudioFile}", audioFilePath);
 
-            var startInfo = new ProcessStartInfo
+            var builder = _factory.CreateBuilder()
+                .WithTemperature(0f);
+
+            if (!string.IsNullOrEmpty(_language))
+                builder.WithLanguage(_language);
+            else
+                builder.WithLanguageDetection();
+
+            using var processor = builder.Build();
+            using var fileStream = File.OpenRead(audioFilePath);
+
+            var segments = new List<string>();
+            await foreach (var segment in processor.ProcessAsync(fileStream))
             {
-                FileName = _pythonPath,
-                Arguments = BuildArguments(audioFilePath),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            using var process = new Process { StartInfo = startInfo };
-
-            var outputBuilder = new StringBuilder();
-            var errorBuilder = new StringBuilder();
-
-            process.OutputDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    outputBuilder.AppendLine(e.Data);
-                }
-            };
-
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    errorBuilder.AppendLine(e.Data);
-                    Log.Debug("Whisper stderr: {Message}", e.Data);
-                }
-            };
-
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            var completed = await Task.Run(() =>
-                process.WaitForExit(_timeoutSeconds * 1000));
-
-            if (!completed)
-            {
-                process.Kill();
-                throw new TimeoutException(
-                    $"Transcription timed out after {_timeoutSeconds} seconds");
+                segments.Add(segment.Text);
             }
 
-            if (process.ExitCode != 0)
-            {
-                var error = errorBuilder.ToString();
-                Log.Error("Whisper process failed with exit code {ExitCode}: {Error}",
-                    process.ExitCode, error);
-                throw new Exception(
-                    $"Whisper transcription failed (exit code {process.ExitCode}): {error}");
-            }
-
-            var transcription = outputBuilder.ToString().Trim();
+            var transcription = string.Join(" ", segments).Trim();
 
             if (string.IsNullOrWhiteSpace(transcription))
             {
@@ -115,9 +87,7 @@ public class WhisperEngine
                 return string.Empty;
             }
 
-            Log.Information("Transcription completed successfully: {Length} characters",
-                transcription.Length);
-
+            Log.Information("Transcription completed: {Length} characters", transcription.Length);
             return transcription;
         }
         catch (Exception ex)
@@ -127,79 +97,43 @@ public class WhisperEngine
         }
     }
 
-    private string BuildArguments(string audioFilePath)
+    private async Task<string> EnsureModelDownloadedAsync()
     {
-        var args = new StringBuilder();
+        Directory.CreateDirectory(ModelsDir);
 
-        // Script path (quote if it contains spaces)
-        args.Append($"\"{_scriptPath}\" ");
+        var ggmlType = ParseGgmlType(_modelName);
+        var modelFileName = $"ggml-{_modelName}.bin";
+        var modelPath = Path.Combine(ModelsDir, modelFileName);
 
-        // Audio file path (quote if it contains spaces)
-        args.Append($"\"{audioFilePath}\" ");
-
-        // Model
-        args.Append($"--model {_modelName} ");
-
-        // Language (optional)
-        if (!string.IsNullOrEmpty(_language))
+        if (File.Exists(modelPath))
         {
-            args.Append($"--language {_language}");
+            Log.Information("Model already downloaded: {Path}", modelPath);
+            return modelPath;
         }
 
-        return args.ToString().Trim();
+        Log.Information("Downloading Whisper model '{Model}' to {Path}...", _modelName, modelPath);
+
+        using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(ggmlType);
+        using var fileWriter = File.Create(modelPath);
+        await modelStream.CopyToAsync(fileWriter);
+
+        Log.Information("Model download complete: {Path}", modelPath);
+        return modelPath;
     }
 
-    /// <summary>
-    /// Checks if Python and Whisper are available
-    /// </summary>
-    public async Task<bool> CheckAvailabilityAsync()
+    private static GgmlType ParseGgmlType(string modelName) => modelName.ToLowerInvariant() switch
     {
-        try
-        {
-            // Check Python
-            var pythonCheck = new ProcessStartInfo
-            {
-                FileName = _pythonPath,
-                Arguments = "--version",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+        "tiny" => GgmlType.Tiny,
+        "base" => GgmlType.Base,
+        "small" => GgmlType.Small,
+        "medium" => GgmlType.Medium,
+        "large" => GgmlType.LargeV3Turbo,
+        _ => GgmlType.Base
+    };
 
-            using var pythonProcess = Process.Start(pythonCheck);
-            if (pythonProcess == null)
-            {
-                Log.Error("Failed to start Python process");
-                return false;
-            }
-
-            await pythonProcess.WaitForExitAsync();
-
-            if (pythonProcess.ExitCode != 0)
-            {
-                Log.Error("Python check failed with exit code {ExitCode}",
-                    pythonProcess.ExitCode);
-                return false;
-            }
-
-            var pythonVersion = await pythonProcess.StandardOutput.ReadToEndAsync();
-            Log.Information("Python found: {Version}", pythonVersion.Trim());
-
-            // Check if script exists
-            if (!File.Exists(_scriptPath))
-            {
-                Log.Error("Whisper service script not found: {ScriptPath}", _scriptPath);
-                return false;
-            }
-
-            Log.Information("Whisper service availability check passed");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error checking Whisper availability");
-            return false;
-        }
+    public void Dispose()
+    {
+        _factory?.Dispose();
+        _factory = null;
     }
 }
