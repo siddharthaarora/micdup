@@ -19,11 +19,6 @@
     <!-- Output as MicDup.exe instead of MicDup.Core.exe -->
     <AssemblyName>MicDup</AssemblyName>
 
-    <!-- Single-file publishing -->
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-
     <!-- Windows manifest -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>

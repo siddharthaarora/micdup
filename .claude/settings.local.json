@@ -20,7 +20,12 @@
       "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish:*)",
       "Bash(git push:*)",
       "Bash(gh release create:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(python3 -c \"\nimport subprocess, re\nresult = subprocess.run\\([''dotnet'', ''script'', ''eval'', ''typeof\\(Whisper.net.LibraryLoader.RuntimeOptions\\).GetMembers\\(\\)''], capture_output=True, text=True\\)\nprint\\(result.stdout\\)\n\")",
+      "Bash(find:*)"
     ]
   }
 }

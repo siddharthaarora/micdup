@@ -34,6 +34,10 @@ public class WhisperEngine : IDisposable
     {
         try
         {
+            // Explicitly set native library search path so Whisper.net can find its DLLs
+            // in the runtimes/ subdirectory (required for builds with RuntimeIdentifier set)
+            SetNativeLibraryPath();
+
             var modelPath = await EnsureModelDownloadedAsync();
             _factory = WhisperFactory.FromPath(modelPath);
             _initialized = true;
@@ -94,6 +98,26 @@ public class WhisperEngine : IDisposable
         {
             Log.Error(ex, "Error during transcription");
             throw;
+        }
+    }
+
+    private static void SetNativeLibraryPath()
+    {
+        var appDir = AppDomain.CurrentDomain.BaseDirectory;
+
+        // Prefer Vulkan runtime (GPU acceleration), fall back to CPU runtime
+        var vulkanPath = Path.Combine(appDir, "runtimes", "vulkan", "win-x64");
+        var cpuPath = Path.Combine(appDir, "runtimes", "win-x64");
+
+        if (Directory.Exists(vulkanPath))
+        {
+            Log.Debug("Setting Whisper native library path to Vulkan runtime: {Path}", vulkanPath);
+            Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = vulkanPath;
+        }
+        else if (Directory.Exists(cpuPath))
+        {
+            Log.Debug("Setting Whisper native library path to CPU runtime: {Path}", cpuPath);
+            Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = cpuPath;
         }
     }
 
