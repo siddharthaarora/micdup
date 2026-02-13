@@ -12,6 +12,7 @@ public class AppController : IDisposable
     private readonly HotkeyManager _hotkeyManager;
     private readonly WhisperEngine _whisperEngine;
     private readonly SettingsManager _settingsManager;
+    private readonly UpdateChecker _updateChecker;
     private AudioRecorder? _audioRecorder;
     private string? _currentRecordingPath;
     private AppState _state = AppState.Idle;
@@ -24,6 +25,7 @@ public class AppController : IDisposable
         _autoPasteEnabled = settingsManager.Settings.Behavior.AutoPaste;
         _trayManager = new TrayManager();
         _hotkeyManager = new HotkeyManager();
+        _updateChecker = new UpdateChecker();
     }
 
     /// <summary>
@@ -39,6 +41,7 @@ public class AppController : IDisposable
             _trayManager.Initialize();
             _trayManager.StartStopClicked += OnStartStopClicked;
             _trayManager.SettingsClicked += OnSettingsClicked;
+            _trayManager.CheckForUpdatesClicked += OnCheckForUpdatesClicked;
             _trayManager.ExitClicked += OnExitClicked;
             _trayManager.SetState(TrayState.Idle);
 
@@ -62,6 +65,13 @@ public class AppController : IDisposable
             }
 
             _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
+
+            // Check for updates in the background after a short delay
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000);
+                await CheckForUpdatesAsync(silent: true);
+            });
 
             Log.Information("AppController initialized successfully");
 
@@ -102,6 +112,69 @@ public class AppController : IDisposable
             _autoPasteEnabled = _settingsManager.Settings.Behavior.AutoPaste;
 
             Log.Information("Settings applied");
+        }
+    }
+
+    private void OnCheckForUpdatesClicked(object? sender, EventArgs e)
+    {
+        _ = CheckForUpdatesAsync(silent: false);
+    }
+
+    private async Task CheckForUpdatesAsync(bool silent)
+    {
+        try
+        {
+            Log.Information("Checking for updates...");
+            var release = await _updateChecker.CheckForUpdateAsync();
+
+            if (release == null)
+            {
+                if (!silent)
+                {
+                    _trayManager.ShowNotification("MicDup",
+                        $"You're running the latest version (v{UpdateChecker.GetCurrentVersion()}).");
+                }
+                return;
+            }
+
+            var result = MessageBox.Show(
+                $"A new version is available: {release.TagName}\n\n" +
+                $"Current version: v{UpdateChecker.GetCurrentVersion()}\n\n" +
+                "Would you like to download and install the update? The app will restart.",
+                "MicDup Update Available",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information);
+
+            if (result != DialogResult.Yes)
+                return;
+
+            _trayManager.ShowNotification("MicDup", "Downloading update...");
+
+            var shouldRestart = await _updateChecker.DownloadAndApplyUpdateAsync(release);
+            if (shouldRestart)
+            {
+                Application.Exit();
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Update failed. Please try again later or download manually from GitHub.",
+                    "MicDup Update",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error during update check");
+            if (!silent)
+            {
+                MessageBox.Show(
+                    $"Failed to check for updates: {ex.Message}",
+                    "MicDup Update",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
         }
     }
 
@@ -249,6 +322,12 @@ public class AppController : IDisposable
         {
             Log.Warning(ex, "Failed to delete audio file: {FilePath}", filePath);
         }
+    }
+
+    public void ShowUpdateSuccessNotification()
+    {
+        _trayManager.ShowNotification("MicDup",
+            $"Successfully updated to v{UpdateChecker.GetCurrentVersion()}!");
     }
 
     public void Dispose()

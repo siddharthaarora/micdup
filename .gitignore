@@ -54,12 +54,20 @@ appsettings.local.json
 .DS_Store
 Thumbs.db
 desktop.ini
+nul
 
 # Temporary files
 temp/
 tmp/
 *.tmp
 *.wav
+
+# Update backup files
+*.old
+
+# Release artifacts
+publish/
+*.zip
 
 # IDE
 *.swp

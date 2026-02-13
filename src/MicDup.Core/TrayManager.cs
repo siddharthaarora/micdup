@@ -20,7 +20,10 @@ public class TrayManager : IDisposable
 
     public event EventHandler? StartStopClicked;
     public event EventHandler? SettingsClicked;
+    public event EventHandler? CheckForUpdatesClicked;
     public event EventHandler? ExitClicked;
+
+    private static readonly string _version = UpdateChecker.GetCurrentVersion();
 
     public void Initialize()
     {
@@ -28,6 +31,11 @@ public class TrayManager : IDisposable
         {
             // Create context menu
             _contextMenu = new ContextMenuStrip();
+
+            var versionItem = new ToolStripMenuItem($"MicDup v{_version}")
+            {
+                Enabled = false
+            };
 
             _statusItem = new ToolStripMenuItem("Status: Ready")
             {
@@ -40,16 +48,21 @@ public class TrayManager : IDisposable
             var settingsItem = new ToolStripMenuItem("Settings...");
             settingsItem.Click += (s, e) => SettingsClicked?.Invoke(this, EventArgs.Empty);
 
+            var checkForUpdatesItem = new ToolStripMenuItem("Check for Updates...");
+            checkForUpdatesItem.Click += (s, e) => CheckForUpdatesClicked?.Invoke(this, EventArgs.Empty);
+
             _exitItem = new ToolStripMenuItem("Exit");
             _exitItem.Click += (s, e) => ExitClicked?.Invoke(this, EventArgs.Empty);
 
             _contextMenu.Items.AddRange(new ToolStripItem[]
             {
+                versionItem,
                 _statusItem,
                 new ToolStripSeparator(),
                 _startStopItem,
                 new ToolStripSeparator(),
                 settingsItem,
+                checkForUpdatesItem,
                 new ToolStripSeparator(),
                 _exitItem
             });
@@ -59,7 +72,7 @@ public class TrayManager : IDisposable
             {
                 Icon = IconGenerator.CreateIdleIcon(),
                 ContextMenuStrip = _contextMenu,
-                Text = "Micd Up - Speech to Text",
+                Text = $"MicDup v{_version} - Speech to Text",
                 Visible = true
             };
 
@@ -97,7 +110,7 @@ public class TrayManager : IDisposable
                 _statusItem.Text = "Status: Ready";
                 _startStopItem.Text = "Start Recording";
                 _startStopItem.Enabled = true;
-                _notifyIcon.Text = "Micd Up - Ready";
+                _notifyIcon.Text = $"MicDup v{_version} - Ready";
                 _notifyIcon.Icon = IconGenerator.CreateIdleIcon();
                 break;
 
@@ -106,14 +119,14 @@ public class TrayManager : IDisposable
                 _statusItem.Text = "Status: Recording...";
                 _startStopItem.Text = "Stop Recording";
                 _startStopItem.Enabled = true;
-                _notifyIcon.Text = "Micd Up - Recording";
+                _notifyIcon.Text = $"MicDup v{_version} - Recording";
                 _notifyIcon.Icon = IconGenerator.CreateRecordingIcon();
                 break;
 
             case TrayState.Processing:
                 _statusItem.Text = "Status: Transcribing...";
                 _startStopItem.Enabled = false;
-                _notifyIcon.Text = "Micd Up - Processing";
+                _notifyIcon.Text = $"MicDup v{_version} - Processing";
                 _animationFrame = 0;
                 _animationTimer?.Start(); // Start animation
                 break;
@@ -123,7 +136,7 @@ public class TrayManager : IDisposable
                 _statusItem.Text = "Status: Text copied!";
                 _startStopItem.Text = "Start Recording";
                 _startStopItem.Enabled = true;
-                _notifyIcon.Text = "Micd Up - Success";
+                _notifyIcon.Text = $"MicDup v{_version} - Success";
                 _notifyIcon.Icon = IconGenerator.CreateSuccessIcon();
 
                 // Reset to idle after 2 seconds
@@ -135,7 +148,7 @@ public class TrayManager : IDisposable
                 _statusItem.Text = "Status: Error occurred";
                 _startStopItem.Text = "Start Recording";
                 _startStopItem.Enabled = true;
-                _notifyIcon.Text = "Micd Up - Error";
+                _notifyIcon.Text = $"MicDup v{_version} - Error";
                 _notifyIcon.Icon = IconGenerator.CreateErrorIcon();
 
                 // Reset to idle after 3 seconds

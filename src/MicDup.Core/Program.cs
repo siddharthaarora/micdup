@@ -25,8 +25,15 @@ class Program
 
         try
         {
-            Log.Information("MicDup starting (Windows Application)...");
+            var version = UpdateChecker.GetCurrentVersion();
+            Log.Information("MicDup v{Version} starting...", version);
             Log.Information("App data path: {AppDataPath}", appDataPath);
+
+            // Clean up old executable from a previous update
+            UpdateChecker.CleanupOldVersion();
+
+            // Show update success notification if we just updated
+            var justUpdated = args.Contains("--updated");
 
             // Enable visual styles for Windows Forms
             Application.EnableVisualStyles();
@@ -44,7 +51,7 @@ class Program
             );
 
             // Create application context and run message loop
-            using var appContext = new MicDupApplicationContext(whisperEngine, settingsManager);
+            using var appContext = new MicDupApplicationContext(whisperEngine, settingsManager, justUpdated);
             Application.Run(appContext);
 
             Log.Information("Application shutting down...");

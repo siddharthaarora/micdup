@@ -6,7 +6,21 @@
       "Bash(cmd.exe /c dotnet --version)",
       "Bash(cmd.exe /c \"dotnet --version\")",
       "Bash(cmd.exe /c \"where dotnet.exe 2>nul || echo Not in PATH\")",
-      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" build)"
+      "Bash(\"C:\\\\Program Files\\\\dotnet\\\\dotnet.exe\" build)",
+      "Bash(cmd.exe /c \"cd /d c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup && dotnet build src\\\\MicDup.Core\")",
+      "Bash(cmd.exe /c \"cd /d c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup && dotnet build src\\\\MicDup.Core 2>&1\")",
+      "Bash(cmd.exe /c \"dotnet build c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup\\\\src\\\\MicDup.Core\\\\MicDup.Core.csproj 2>&1\")",
+      "Bash(powershell.exe:*)",
+      "Bash(cmd.exe /c \"where dotnet 2>&1\")",
+      "Bash(cmd.exe /c \"echo %PATH% && where dotnet\")",
+      "Bash(cmd.exe:*)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" build \"c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup\\\\src\\\\MicDup.Core\\\\MicDup.Core.csproj\")",
+      "WebFetch(domain:github.com)",
+      "Bash(git add:*)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish:*)",
+      "Bash(git push:*)",
+      "Bash(gh release create:*)",
+      "Bash(dir:*)"
     ]
   }
 }

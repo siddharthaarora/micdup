@@ -11,11 +11,13 @@ public class MicDupApplicationContext : ApplicationContext
     private AppController? _appController;
     private readonly WhisperEngine _whisperEngine;
     private readonly SettingsManager _settingsManager;
+    private readonly bool _justUpdated;
 
-    public MicDupApplicationContext(WhisperEngine whisperEngine, SettingsManager settingsManager)
+    public MicDupApplicationContext(WhisperEngine whisperEngine, SettingsManager settingsManager, bool justUpdated = false)
     {
         _whisperEngine = whisperEngine;
         _settingsManager = settingsManager;
+        _justUpdated = justUpdated;
         InitializeAsync().ConfigureAwait(false);
     }
 
@@ -43,6 +45,11 @@ public class MicDupApplicationContext : ApplicationContext
 
                 Application.Exit();
                 return;
+            }
+
+            if (_justUpdated)
+            {
+                _appController.ShowUpdateSuccessNotification();
             }
 
             Log.Information("MicDup application context initialized successfully");

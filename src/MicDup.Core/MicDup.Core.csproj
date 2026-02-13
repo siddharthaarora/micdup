@@ -8,6 +8,24 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <UseWindowsForms>true</UseWindowsForms>
+
+    <!-- Versioning -->
+    <Version>1.1.0</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1.0</InformationalVersion>
+    <Product>MicDup</Product>
+
+    <!-- Output as MicDup.exe instead of MicDup.Core.exe -->
+    <AssemblyName>MicDup</AssemblyName>
+
+    <!-- Single-file publishing -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+    <!-- Windows manifest -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,5 +39,14 @@
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.0" />
     <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.0" />
   </ItemGroup>
+
+  <!-- Remove non-Windows native runtimes that leak from Whisper.net Vulkan package -->
+  <Target Name="RemoveLinuxRuntimes" AfterTargets="Publish">
+    <ItemGroup>
+      <LinuxFiles Include="$(PublishDir)runtimes/**/linux-*/**" />
+    </ItemGroup>
+    <Delete Files="@(LinuxFiles)" />
+    <RemoveDir Directories="$(PublishDir)runtimes" Condition="Exists('$(PublishDir)runtimes')" />
+  </Target>
 
 </Project>

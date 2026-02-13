@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/MicDup.Core/MicDup.Core.csproj
+
+      - name: Publish single-file executable
+        run: >
+          dotnet publish src/MicDup.Core/MicDup.Core.csproj
+          -c Release
+          -r win-x64
+          --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o ./publish
+
+      # TODO: Add code signing step here once a certificate is configured.
+      # Options:
+      #   - Azure Trusted Signing ($9.99/month)
+      #   - SignPath Foundation (free for open source)
+      #   - OV certificate with signtool
+      #
+      # Example with signtool:
+      # - name: Sign executable
+      #   run: signtool sign /f cert.pfx /p ${{ secrets.CERT_PASSWORD }} /tr http://timestamp.digicert.com /td sha256 /fd sha256 ./publish/MicDup.exe
+
+      - name: Create release zip
+        run: Compress-Archive -Path ./publish/MicDup.exe -DestinationPath ./MicDup-${{ github.ref_name }}-win-x64.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./MicDup-${{ github.ref_name }}-win-x64.zip
+          generate_release_notes: true

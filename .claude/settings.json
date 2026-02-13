@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nReplace Python Whisper with native Whisper.net, add settings UI, fix tray icon\n\n- Migrate from Python subprocess to in-process Whisper.net \\(whisper.cpp\\)\n  for zero-dependency distribution as a single exe\n- Model auto-downloads from Hugging Face on first launch\n- GPU acceleration via Vulkan runtime \\(falls back to CPU\\)\n- Add Settings dialog \\(right-click tray > Settings\\) with:\n  - Customizable hotkey with live capture\n  - Whisper model selection \\(tiny/base/small/medium/large\\)\n  - Auto-paste toggle\n- Settings persist to %APPDATA%\\\\MicDup\\\\settings.json\n- Rewrite IconGenerator: draw microphone at 256x256 and scale to 16x16\n  for crisp system tray icon \\(removed broken system DLL extraction\\)\n- Add HotkeyManager.ReregisterHotkey\\(\\) for runtime hotkey changes\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
