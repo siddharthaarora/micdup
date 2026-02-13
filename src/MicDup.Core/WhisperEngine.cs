@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Serilog;
 using Whisper.net;
 using Whisper.net.Ggml;
@@ -104,21 +105,40 @@ public class WhisperEngine : IDisposable
     private static void SetNativeLibraryPath()
     {
         var appDir = AppDomain.CurrentDomain.BaseDirectory;
+        Log.Information("App base directory: {AppDir}", appDir);
 
-        // Prefer Vulkan runtime (GPU acceleration), fall back to CPU runtime
-        var vulkanPath = Path.Combine(appDir, "runtimes", "vulkan", "win-x64");
-        var cpuPath = Path.Combine(appDir, "runtimes", "win-x64");
+        // Whisper.net's NativeLibraryLoader probes runtimes/{variant}/win-x64/ under the base directory.
+        // Some environments (IDE, published single-file) change the effective base directory,
+        // so we directly pre-load the native DLLs using Windows LoadLibrary as a reliable fallback.
+        var searchDirs = new[]
+        {
+            Path.Combine(appDir, "runtimes", "vulkan", "win-x64"),  // Vulkan GPU (preferred)
+            Path.Combine(appDir, "runtimes", "win-x64"),             // CPU fallback
+        };
 
-        if (Directory.Exists(vulkanPath))
+        foreach (var dir in searchDirs)
         {
-            Log.Debug("Setting Whisper native library path to Vulkan runtime: {Path}", vulkanPath);
-            Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = vulkanPath;
+            var whisperDll = Path.Combine(dir, "whisper.dll");
+            if (!File.Exists(whisperDll))
+                continue;
+
+            Log.Information("Loading Whisper native libraries from: {Dir}", dir);
+
+            // Load all native DLLs in the directory - order matters (dependencies first)
+            var dllNames = new[] { "ggml-base-whisper.dll", "ggml-cpu-whisper.dll",
+                                   "ggml-vulkan-whisper.dll", "ggml-whisper.dll", "whisper.dll" };
+            foreach (var dllName in dllNames)
+            {
+                var dllPath = Path.Combine(dir, dllName);
+                if (File.Exists(dllPath))
+                {
+                    NativeLibrary.TryLoad(dllPath, out _);
+                }
+            }
+            return;
         }
-        else if (Directory.Exists(cpuPath))
-        {
-            Log.Debug("Setting Whisper native library path to CPU runtime: {Path}", cpuPath);
-            Whisper.net.LibraryLoader.RuntimeOptions.LibraryPath = cpuPath;
-        }
+
+        Log.Warning("Could not find Whisper native libraries in any expected location");
     }
 
     private async Task<string> EnsureModelDownloadedAsync()
