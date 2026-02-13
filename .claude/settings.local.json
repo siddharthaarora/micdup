@@ -25,7 +25,14 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:deepwiki.com)",
       "Bash(python3 -c \"\nimport subprocess, re\nresult = subprocess.run\\([''dotnet'', ''script'', ''eval'', ''typeof\\(Whisper.net.LibraryLoader.RuntimeOptions\\).GetMembers\\(\\)''], capture_output=True, text=True\\)\nprint\\(result.stdout\\)\n\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(Remove-Item -Recurse -Force c:Userssidsisrcprivatemicduppublish -ErrorAction SilentlyContinue)",
+      "Bash(cmd /c \"taskkill /f /im MicDup.exe 2>nul & rd /s /q c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup\\\\publish 2>nul & echo done\")",
+      "Bash(cmd /c \"tasklist /fi \"\"imagename eq MicDup.exe\"\" 2>&1\")",
+      "Bash(cmd /c \"handle c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup\\\\publish\\\\MicDup.exe 2>&1\")",
+      "Bash(cmd /c:*)",
+      "Bash(dotnet-ildasm:*)",
+      "Bash(python:*)"
     ]
   }
 }

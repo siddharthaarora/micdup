@@ -104,38 +104,35 @@ public class WhisperEngine : IDisposable
 
     private static void SetNativeLibraryPath()
     {
-        var appDir = AppDomain.CurrentDomain.BaseDirectory;
-        Log.Information("App base directory: {AppDir}", appDir);
+        var baseDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Whisper.net's NativeLibraryLoader probes runtimes/{variant}/win-x64/ under the base directory.
-        // Some environments (IDE, published single-file) change the effective base directory,
-        // so we directly pre-load the native DLLs using Windows LoadLibrary as a reliable fallback.
-        var searchDirs = new[]
+        var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? "";
+        if (!string.IsNullOrEmpty(exeDir)) baseDirs.Add(exeDir);
+        baseDirs.Add(AppDomain.CurrentDomain.BaseDirectory);
+
+        // Check runtimes subdirs (Vulkan GPU first, then CPU fallback)
+        var runtimeSubdirs = new[] { Path.Combine("runtimes", "vulkan", "win-x64"),
+                                     Path.Combine("runtimes", "win-x64") };
+
+        foreach (var baseDir in baseDirs)
         {
-            Path.Combine(appDir, "runtimes", "vulkan", "win-x64"),  // Vulkan GPU (preferred)
-            Path.Combine(appDir, "runtimes", "win-x64"),             // CPU fallback
-        };
-
-        foreach (var dir in searchDirs)
-        {
-            var whisperDll = Path.Combine(dir, "whisper.dll");
-            if (!File.Exists(whisperDll))
-                continue;
-
-            Log.Information("Loading Whisper native libraries from: {Dir}", dir);
-
-            // Load all native DLLs in the directory - order matters (dependencies first)
-            var dllNames = new[] { "ggml-base-whisper.dll", "ggml-cpu-whisper.dll",
-                                   "ggml-vulkan-whisper.dll", "ggml-whisper.dll", "whisper.dll" };
-            foreach (var dllName in dllNames)
+            foreach (var sub in runtimeSubdirs)
             {
-                var dllPath = Path.Combine(dir, dllName);
-                if (File.Exists(dllPath))
+                var dir = Path.Combine(baseDir, sub);
+                if (!File.Exists(Path.Combine(dir, "whisper.dll")))
+                    continue;
+
+                Log.Information("Loading Whisper native libraries from: {Dir}", dir);
+
+                foreach (var dll in new[] { "ggml-base-whisper.dll", "ggml-cpu-whisper.dll",
+                                            "ggml-vulkan-whisper.dll", "ggml-whisper.dll", "whisper.dll" })
                 {
-                    NativeLibrary.TryLoad(dllPath, out _);
+                    var path = Path.Combine(dir, dll);
+                    if (File.Exists(path))
+                        NativeLibrary.TryLoad(path, out _);
                 }
+                return;
             }
-            return;
         }
 
         Log.Warning("Could not find Whisper native libraries in any expected location");

@@ -29,9 +29,6 @@ class Program
             Log.Information("MicDup v{Version} starting...", version);
             Log.Information("App data path: {AppDataPath}", appDataPath);
 
-            // Clean up old executable from a previous update
-            UpdateChecker.CleanupOldVersion();
-
             // Show update success notification if we just updated
             var justUpdated = args.Contains("--updated");
 

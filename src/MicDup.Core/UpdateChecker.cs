@@ -72,14 +72,13 @@ public class UpdateChecker
     }
 
     /// <summary>
-    /// Downloads the update zip, extracts the new exe, and performs an in-place replacement.
-    /// Returns true if the app should restart.
+    /// Downloads the update zip and launches a helper script that replaces files after this process exits.
+    /// Returns true if the app should exit for the update to proceed.
     /// </summary>
     public async Task<bool> DownloadAndApplyUpdateAsync(GitHubRelease release)
     {
         try
         {
-            // Find the win-x64 zip asset
             var asset = release.Assets?.FirstOrDefault(a =>
                 a.Name.Contains("win-x64", StringComparison.OrdinalIgnoreCase) &&
                 a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
@@ -92,137 +91,70 @@ public class UpdateChecker
 
             Log.Information("Downloading update from {Url}", asset.BrowserDownloadUrl);
 
-            // Download zip to temp
             var tempZip = Path.Combine(Path.GetTempPath(), $"micdup-update-{Guid.NewGuid():N}.zip");
             var tempExtract = Path.Combine(Path.GetTempPath(), $"micdup-update-{Guid.NewGuid():N}");
 
-            try
+            using (var downloadStream = await _httpClient.GetStreamAsync(asset.BrowserDownloadUrl))
+            using (var fileStream = File.Create(tempZip))
             {
-                using (var downloadStream = await _httpClient.GetStreamAsync(asset.BrowserDownloadUrl))
-                using (var fileStream = File.Create(tempZip))
-                {
-                    await downloadStream.CopyToAsync(fileStream);
-                }
-
-                Log.Information("Download complete, extracting...");
-
-                // Extract zip
-                ZipFile.ExtractToDirectory(tempZip, tempExtract, overwriteFiles: true);
-
-                // Find the new exe in the extracted files
-                var newExePath = FindExecutable(tempExtract);
-                if (newExePath == null)
-                {
-                    Log.Error("Could not find MicDup.exe in the update package");
-                    return false;
-                }
-
-                // Perform in-place replacement
-                var currentExe = Environment.ProcessPath
-                    ?? Process.GetCurrentProcess().MainModule?.FileName;
-
-                if (string.IsNullOrEmpty(currentExe))
-                {
-                    Log.Error("Could not determine current executable path");
-                    return false;
-                }
-
-                var currentDir = Path.GetDirectoryName(currentExe)!;
-                var oldExe = currentExe + ".old";
-
-                // Delete any previous .old file
-                if (File.Exists(oldExe))
-                    File.Delete(oldExe);
-
-                // Rename running exe to .old (Windows allows this on locked files)
-                File.Move(currentExe, oldExe);
-                Log.Information("Renamed current exe to {OldExe}", oldExe);
-
-                // Copy new exe into place
-                File.Copy(newExePath, currentExe);
-                Log.Information("Copied new exe to {CurrentExe}", currentExe);
-
-                // Start the new process with --updated flag
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = currentExe,
-                    Arguments = "--updated",
-                    UseShellExecute = true
-                });
-
-                Log.Information("Started updated process, shutting down current...");
-                return true; // Signal caller to exit
+                await downloadStream.CopyToAsync(fileStream);
             }
-            finally
+
+            Log.Information("Download complete, extracting...");
+            ZipFile.ExtractToDirectory(tempZip, tempExtract, overwriteFiles: true);
+
+            // Clean up the zip immediately
+            try { File.Delete(tempZip); } catch { }
+
+            var currentExe = Environment.ProcessPath
+                ?? Process.GetCurrentProcess().MainModule?.FileName;
+
+            if (string.IsNullOrEmpty(currentExe))
             {
-                // Cleanup temp files
-                try { if (File.Exists(tempZip)) File.Delete(tempZip); } catch { }
-                try { if (Directory.Exists(tempExtract)) Directory.Delete(tempExtract, true); } catch { }
+                Log.Error("Could not determine current executable path");
+                return false;
             }
+
+            var currentDir = Path.GetDirectoryName(currentExe)!;
+            var pid = Environment.ProcessId;
+
+            // Write a batch script that waits for us to exit, then copies all new files over
+            var scriptPath = Path.Combine(Path.GetTempPath(), $"micdup-update-{Guid.NewGuid():N}.cmd");
+            var script = $"""
+                @echo off
+                echo Waiting for MicDup to exit...
+                :waitloop
+                tasklist /fi "PID eq {pid}" 2>nul | find "{pid}" >nul
+                if not errorlevel 1 (
+                    timeout /t 1 /nobreak >nul
+                    goto waitloop
+                )
+                echo Copying update files...
+                xcopy /s /y /q "{tempExtract}\*" "{currentDir}\"
+                echo Starting updated MicDup...
+                start "" "{currentExe}" --updated
+                echo Cleaning up...
+                rd /s /q "{tempExtract}" 2>nul
+                del "%~f0"
+                """;
+
+            File.WriteAllText(scriptPath, script);
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"/c \"{scriptPath}\"",
+                WindowStyle = ProcessWindowStyle.Hidden,
+                CreateNoWindow = true
+            });
+
+            Log.Information("Update script launched, shutting down for update...");
+            return true;
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to download and apply update");
-
-            // Attempt to restore if we renamed but failed to copy
-            TryRestoreFromBackup();
             return false;
-        }
-    }
-
-    /// <summary>
-    /// Cleans up the .old backup file from a previous update. Call on startup.
-    /// </summary>
-    public static void CleanupOldVersion()
-    {
-        try
-        {
-            var currentExe = Environment.ProcessPath
-                ?? Process.GetCurrentProcess().MainModule?.FileName;
-
-            if (string.IsNullOrEmpty(currentExe))
-                return;
-
-            var oldExe = currentExe + ".old";
-            if (File.Exists(oldExe))
-            {
-                File.Delete(oldExe);
-                Log.Information("Cleaned up old version: {OldExe}", oldExe);
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Debug(ex, "Could not clean up old version (may still be locked)");
-        }
-    }
-
-    private static string? FindExecutable(string extractDir)
-    {
-        // Look for MicDup.exe in extracted files (could be at root or one level deep)
-        var candidates = Directory.GetFiles(extractDir, "MicDup.exe", SearchOption.AllDirectories);
-        return candidates.FirstOrDefault();
-    }
-
-    private static void TryRestoreFromBackup()
-    {
-        try
-        {
-            var currentExe = Environment.ProcessPath
-                ?? Process.GetCurrentProcess().MainModule?.FileName;
-
-            if (string.IsNullOrEmpty(currentExe))
-                return;
-
-            var oldExe = currentExe + ".old";
-            if (File.Exists(oldExe) && !File.Exists(currentExe))
-            {
-                File.Move(oldExe, currentExe);
-                Log.Information("Restored from backup after failed update");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to restore from backup");
         }
     }
 
