@@ -23,8 +23,6 @@
     <!-- Windows manifest -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <!-- Self-contained so .NET runtime is included in the zip -->
-    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
