@@ -129,8 +129,22 @@ public class UpdateChecker
                     timeout /t 1 /nobreak >nul
                     goto waitloop
                 )
+                timeout /t 2 /nobreak >nul
                 echo Copying update files...
+                set RETRIES=0
+                :copyloop
                 xcopy /s /y /q "{tempExtract}\*" "{currentDir}\"
+                if errorlevel 1 (
+                    set /a RETRIES+=1
+                    if %RETRIES% GEQ 5 (
+                        echo Update failed after 5 retries. Starting app without update.
+                        goto startapp
+                    )
+                    echo Copy failed, retrying in 2 seconds...
+                    timeout /t 2 /nobreak >nul
+                    goto copyloop
+                )
+                :startapp
                 echo Starting updated MicDup...
                 start "" "{currentExe}" --updated
                 echo Cleaning up...

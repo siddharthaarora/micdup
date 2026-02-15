@@ -24,10 +24,25 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore src/MicDup.Core/MicDup.Core.csproj
 
-      - name: Publish
+      - name: Set version from tag
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $ver = $tag.TrimStart('v')
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Publish single-file executable
         run: >
           dotnet publish src/MicDup.Core/MicDup.Core.csproj
           -c Release
+          -r win-x64
+          --self-contained
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version=${{ steps.version.outputs.VERSION }}
+          -p:AssemblyVersion=${{ steps.version.outputs.VERSION }}.0
+          -p:FileVersion=${{ steps.version.outputs.VERSION }}.0
+          -p:InformationalVersion=${{ steps.version.outputs.VERSION }}
           -o ./publish
 
       # TODO: Add code signing step here once a certificate is configured.
@@ -37,7 +52,7 @@ jobs:
       #   - OV certificate with signtool
 
       - name: Create release zip
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./MicDup-${{ github.ref_name }}-win-x64.zip
+        run: Compress-Archive -Path ./publish/MicDup.exe -DestinationPath ./MicDup-${{ github.ref_name }}-win-x64.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
