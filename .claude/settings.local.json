@@ -34,7 +34,8 @@
       "Bash(dotnet-ildasm:*)",
       "Bash(python:*)",
       "Bash(git status:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ls:*)"
     ]
   }
 }

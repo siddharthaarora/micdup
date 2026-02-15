@@ -47,4 +47,13 @@
     <RemoveDir Directories="@(LinuxDirs)" />
   </Target>
 
+  <!-- Move managed dependency DLLs into lib/ subfolder to keep root clean -->
+  <Target Name="MoveDependenciesToLib" AfterTargets="RemoveLinuxRuntimes">
+    <ItemGroup>
+      <DependencyDlls Include="$(PublishDir)*.dll" Exclude="$(PublishDir)MicDup.dll" />
+    </ItemGroup>
+    <MakeDir Directories="$(PublishDir)lib" />
+    <Move SourceFiles="@(DependencyDlls)" DestinationFolder="$(PublishDir)lib" />
+  </Target>
+
 </Project>

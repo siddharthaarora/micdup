@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 using System.Windows.Forms;
 using Serilog;
 
@@ -8,6 +10,22 @@ class Program
     [STAThread]
     static void Main(string[] args)
     {
+        // Register assembly resolver BEFORE any dependency assemblies are loaded.
+        // Managed dependency DLLs live in the lib/ subfolder.
+        var libPath = Path.Combine(AppContext.BaseDirectory, "lib");
+        AssemblyLoadContext.Default.Resolving += (context, assemblyName) =>
+        {
+            var dllPath = Path.Combine(libPath, $"{assemblyName.Name}.dll");
+            return File.Exists(dllPath) ? context.LoadFromAssemblyPath(dllPath) : null;
+        };
+
+        RunApp(args);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static void RunApp(string[] args)
+    {
+
         // Set up logging
         var appDataPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
