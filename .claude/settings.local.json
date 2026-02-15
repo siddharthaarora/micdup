@@ -32,7 +32,9 @@
       "Bash(cmd /c \"handle c:\\\\Users\\\\sidsi\\\\src\\\\private\\\\micdup\\\\publish\\\\MicDup.exe 2>&1\")",
       "Bash(cmd /c:*)",
       "Bash(dotnet-ildasm:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git status:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
