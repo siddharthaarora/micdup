@@ -9,6 +9,14 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <UseWindowsForms>true</UseWindowsForms>
 
+    <!-- Trimming: remove unused framework assemblies from publish output.
+         partial mode is conservative - only trims assemblies explicitly marked trim-safe. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <_SuppressWinFormsTrimError>true</_SuppressWinFormsTrimError>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
     <!-- Versioning (overridden by CI from git tag) -->
     <Version>1.1.4</Version>
     <AssemblyVersion>1.1.4.0</AssemblyVersion>
@@ -37,23 +45,14 @@
     <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.0" />
   </ItemGroup>
 
-  <!-- Remove non-Windows native runtimes that leak from Whisper.net Vulkan package -->
-  <Target Name="RemoveLinuxRuntimes" AfterTargets="Publish">
+  <!-- Remove non-target runtimes from Whisper.net packages (keep only win-x64) -->
+  <Target Name="CleanupRuntimes" AfterTargets="Publish">
     <ItemGroup>
-      <LinuxFiles Include="$(PublishDir)runtimes/**/linux-*/**" />
-      <LinuxDirs Include="$(PublishDir)runtimes/**/linux-*" />
+      <UnneededFiles Include="$(PublishDir)runtimes/**/linux-*/**;$(PublishDir)runtimes/win-arm64/**;$(PublishDir)runtimes/win-x86/**" />
+      <UnneededDirs Include="$(PublishDir)runtimes/**/linux-*;$(PublishDir)runtimes/win-arm64;$(PublishDir)runtimes/win-x86" />
     </ItemGroup>
-    <Delete Files="@(LinuxFiles)" />
-    <RemoveDir Directories="@(LinuxDirs)" />
-  </Target>
-
-  <!-- Move managed dependency DLLs into lib/ subfolder to keep root clean -->
-  <Target Name="MoveDependenciesToLib" AfterTargets="RemoveLinuxRuntimes">
-    <ItemGroup>
-      <DependencyDlls Include="$(PublishDir)*.dll" Exclude="$(PublishDir)MicDup.dll" />
-    </ItemGroup>
-    <MakeDir Directories="$(PublishDir)lib" />
-    <Move SourceFiles="@(DependencyDlls)" DestinationFolder="$(PublishDir)lib" />
+    <Delete Files="@(UnneededFiles)" />
+    <RemoveDir Directories="@(UnneededDirs)" />
   </Target>
 
 </Project>
