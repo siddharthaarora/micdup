@@ -18,8 +18,8 @@ static constexpr int IDC_AUTOPASTE_CHK  = 104;
 static constexpr int IDC_SAVE_BTN       = 105;
 static constexpr int IDC_CANCEL_BTN     = 106;
 
-static constexpr int DLG_WIDTH  = 380;
-static constexpr int DLG_HEIGHT = 260;
+static constexpr int DLG_WIDTH  = 400;
+static constexpr int DLG_HEIGHT = 310;
 
 // ── Dialog state ────────────────────────────────────────────────────────
 
