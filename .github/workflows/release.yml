@@ -12,42 +12,68 @@ jobs:
   build-and-release:
     runs-on: windows-latest
 
+    strategy:
+      matrix:
+        include:
+          - name: cpu
+            vulkan: OFF
+            cuda: OFF
+            suffix: cpu
+          - name: vulkan
+            vulkan: ON
+            cuda: OFF
+            suffix: vulkan
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Install Vulkan SDK
+        if: matrix.vulkan == 'ON'
+        uses: humbletim/install-vulkan-sdk@v1.1.1
         with:
-          dotnet-version: '8.0.x'
-
-      - name: Restore dependencies
-        run: dotnet restore src/MicDup.Core/MicDup.Core.csproj
+          version: latest
+          cache: true
 
       - name: Set version from tag
         id: version
+        shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
           $ver = $tag.TrimStart('v')
           echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
 
-      - name: Publish
+      - name: Configure CMake
         run: >
-          dotnet publish src/MicDup.Core/MicDup.Core.csproj
-          -c Release
-          -r win-x64
-          --self-contained
-          -p:Version=${{ steps.version.outputs.VERSION }}
-          -p:AssemblyVersion=${{ steps.version.outputs.VERSION }}.0
-          -p:FileVersion=${{ steps.version.outputs.VERSION }}.0
-          -p:InformationalVersion=${{ steps.version.outputs.VERSION }}
-          -o ./publish
+          cmake -S src/cpp -B build
+          -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_BUILD_TYPE=Release
+          -DMICDUP_VULKAN=${{ matrix.vulkan }}
+          -DMICDUP_CUDA=${{ matrix.cuda }}
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+          -DPROJECT_VERSION=${{ steps.version.outputs.VERSION }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
 
       - name: Create release zip
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./MicDup-${{ github.ref_name }}-win-x64.zip
+        shell: pwsh
+        run: |
+          $exe = "build/Release/MicDup.exe"
+          if (Test-Path $exe) {
+            Compress-Archive -Path $exe -DestinationPath "./MicDup-${{ github.ref_name }}-win-x64-${{ matrix.suffix }}.zip"
+          } else {
+            Write-Error "MicDup.exe not found"
+            exit 1
+          }
 
       - name: Create GitHub Release
+        if: matrix.name == 'cpu'
         uses: softprops/action-gh-release@v2
         with:
-          files: ./MicDup-${{ github.ref_name }}-win-x64.zip
           generate_release_notes: true
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./MicDup-${{ github.ref_name }}-win-x64-${{ matrix.suffix }}.zip

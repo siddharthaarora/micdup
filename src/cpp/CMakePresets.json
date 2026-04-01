@@ -1,0 +1,58 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "release-cpu",
+      "displayName": "Release (CPU only)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/release-cpu",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MICDUP_VULKAN": "OFF",
+        "MICDUP_CUDA": "OFF"
+      }
+    },
+    {
+      "name": "release-vulkan",
+      "displayName": "Release (Vulkan GPU)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/release-vulkan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MICDUP_VULKAN": "ON",
+        "MICDUP_CUDA": "OFF"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug (CPU only)",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MICDUP_VULKAN": "OFF",
+        "MICDUP_CUDA": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release-cpu",
+      "configurePreset": "release-cpu",
+      "configuration": "Release"
+    },
+    {
+      "name": "release-vulkan",
+      "configurePreset": "release-vulkan",
+      "configuration": "Release"
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "configuration": "Debug"
+    }
+  ]
+}
