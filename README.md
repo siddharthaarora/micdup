@@ -1,248 +1,177 @@
 # MicDup
 
-**Quick speech-to-text transcription for Windows using OpenAI Whisper**
+**Privacy-first voice-to-text for Windows. No cloud. No accounts. Just your voice, on your machine.**
 
-MicDup is a lightweight, always-available Windows application that lets you transcribe speech to text with a simple hotkey. Press the hotkey, speak, press again—your words are instantly in your clipboard (and optionally pasted where you're typing).
+MicDup is a single-file Windows application that transcribes your speech to text using [OpenAI's Whisper](https://github.com/openai/whisper) model running entirely on your machine. Press a hotkey, speak, press again — your words are in your clipboard and optionally pasted where you're typing. No audio ever leaves your computer.
+
+> Inspired by [Mic'd Up](https://github.com/micd-up/micd-up), a fantastic macOS menu bar app built by [@micd-up](https://github.com/micd-up). MicDup brings the same privacy-first, local-only voice-to-text experience to Windows.
 
 ---
 
-## Features
+## Why MicDup?
 
-- **Global Hotkey**: Press CTRL+SHIFT+SPACE (configurable) to start/stop recording
-- **System Tray**: Unobtrusive background operation with visual status
-- **Local Transcription**: Uses OpenAI's Whisper model—no internet required, privacy-first
-- **Auto-Paste**: Automatically pastes transcribed text into focused text fields
-- **Clipboard Integration**: Text always available in clipboard for manual pasting
-- **Multiple Model Sizes**: Choose between speed (tiny) and accuracy (medium/large)
+Every major voice-to-text tool sends your audio to the cloud. That means your private conversations, medical notes, legal dictation, personal journal entries — all processed on someone else's server.
+
+**MicDup is different:**
+
+- **100% local** — Whisper runs on your CPU/GPU. No internet needed after initial model download.
+- **Zero data collection** — No telemetry, no analytics, no accounts, no sign-ups.
+- **Single executable** — One ~2MB file. Copy it anywhere. No installer, no runtime dependencies, no .NET, no Python.
+- **Open source** — Read every line of code. Build it yourself if you want.
+
+Your voice stays on your machine. Period.
 
 ---
 
 ## Quick Start
 
-### For Users
-1. Download the latest installer from [Releases]
-2. Run `MicDup-Setup.exe`
-3. Press CTRL+SHIFT+SPACE to start recording
-4. Speak clearly
-5. Press CTRL+SHIFT+SPACE again
-6. Your text is in the clipboard (and auto-pasted if enabled)
+1. Download `MicDup-vX.X.X-win-x64-cpu.zip` from [Releases](https://github.com/siddharthaarora/micdup/releases)
+2. Extract `MicDup.exe` anywhere
+3. Run it — a microphone icon appears in your system tray
+4. Press **Ctrl+Shift+Space** to start recording
+5. Speak
+6. Press **Ctrl+Shift+Space** again
+7. Your text is in the clipboard (and auto-pasted if a text field is focused)
 
-### For Developers
-See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for detailed development instructions.
+First run downloads the Whisper model (~150MB for "base"). After that, no internet is needed.
+
+---
+
+## Features
+
+- **Global Hotkey** — Ctrl+Shift+Space (configurable) to start/stop recording
+- **System Tray** — Unobtrusive background operation with visual status indicators
+- **Local Transcription** — OpenAI Whisper via [whisper.cpp](https://github.com/ggerganov/whisper.cpp), running natively
+- **Auto-Paste** — Automatically pastes transcribed text into the focused window
+- **Clipboard Integration** — Text always copied to clipboard
+- **GPU Acceleration** — Vulkan build available for faster transcription on AMD/NVIDIA/Intel GPUs
+- **Multiple Model Sizes** — Choose between speed (tiny) and accuracy (large)
+- **Auto-Update** — Checks GitHub releases and updates in-place
+- **Zero Dependencies** — Single static executable, no runtime needed
+
+---
+
+## Downloads
+
+| Build | Best For | GPU Support |
+|-------|----------|-------------|
+| **[CPU](https://github.com/siddharthaarora/micdup/releases/latest)** | Works everywhere | CPU only |
+| **[Vulkan](https://github.com/siddharthaarora/micdup/releases/latest)** | Faster transcription | AMD, NVIDIA, Intel GPUs |
+
+Both are a single `MicDup.exe` file. No installer needed.
+
+---
+
+## Whisper Models
+
+Models are auto-downloaded on first use and stored in `%LOCALAPPDATA%\MicDup\Models\`.
+
+| Model | Download | Speed | Accuracy | Best For |
+|-------|----------|-------|----------|----------|
+| `tiny` | ~75 MB | ~1s | Good | Quick notes, commands |
+| `base` | ~150 MB | ~2s | Better | **Recommended for daily use** |
+| `small` | ~500 MB | ~5s | Great | Dictation, longer text |
+| `medium` | ~1.5 GB | ~15s | Excellent | Professional transcription |
+| `large` | ~3 GB | ~30s | Best | Maximum accuracy |
+
+Change model: right-click tray icon > Settings > Whisper Model.
+
+---
+
+## Configuration
+
+Settings are stored in `%APPDATA%\MicDup\settings.json` and editable via the Settings dialog (right-click tray icon > Settings):
+
+- **Hotkey** — any modifier+key combination
+- **Whisper model** — tiny, base, small, medium, large
+- **Auto-paste** — toggle automatic Ctrl+V into focused window
+
+---
+
+## Privacy & Security
+
+This is the core principle behind MicDup:
+
+- **All processing happens locally** — audio is transcribed by Whisper running on your machine
+- **Audio files are temporary** — recorded WAV is deleted immediately after transcription
+- **No network calls** — after the one-time model download, MicDup never phones home (except optional update checks to GitHub)
+- **No telemetry** — zero data collection of any kind
+- **No account required** — download, run, done
+- **Fully open source** — audit the code, build from source, verify everything
+
+---
+
+## Building from Source
+
+Requires: Visual Studio 2022 (or Build Tools) with C++ workload.
+
+```bash
+# CPU-only build
+cmake -S src/cpp -B build -G "Visual Studio 17 2022" -A x64 -DMICDUP_VULKAN=OFF
+cmake --build build --config Release
+
+# Vulkan GPU build (requires Vulkan SDK)
+cmake -S src/cpp -B build -G "Visual Studio 17 2022" -A x64 -DMICDUP_VULKAN=ON
+cmake --build build --config Release
+```
+
+Or use presets:
+
+```bash
+cmake --preset release-cpu
+cmake --build --preset release-cpu
+```
+
+Output: `build/Release/MicDup.exe`
+
+### Architecture
+
+MicDup is written in C++20 with zero external dependencies beyond whisper.cpp (fetched at build time). Everything uses native Win32 APIs:
+
+```
+MicDup.exe (~2MB single static binary)
+├── whisper.cpp          — speech recognition (statically linked)
+├── Win32 waveIn         — microphone audio capture (16kHz mono PCM)
+├── Shell_NotifyIcon     — system tray icon and context menu
+├── RegisterHotKey       — global hotkey registration
+├── WinHTTP              — model download and update checks
+├── GDI                  — dynamic tray icon rendering
+└── Win32 dialogs        — settings UI
+```
+
+Static CRT linkage (`/MT`) — no DLL dependencies at all.
 
 ---
 
 ## System Requirements
 
 - **OS**: Windows 10 (1809+) or Windows 11
-- **RAM**: 2GB minimum (4GB recommended for larger models)
-- **Disk**: 500MB for application + 150MB-3GB for Whisper models
+- **RAM**: 2 GB minimum (4 GB+ recommended for larger models)
+- **Disk**: ~2 MB for the app + 75 MB–3 GB for the chosen Whisper model
 - **Microphone**: Any audio input device
-
----
-
-## Documentation
-
-- [DESIGN.md](DESIGN.md) - Complete design document covering architecture, components, and technical specifications
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - Detailed implementation plan with tasks, timelines, and development guidelines
-- [USER_GUIDE.md](docs/USER_GUIDE.md) - User documentation (coming soon)
-
----
-
-## Architecture
-
-### Technology Stack
-- **C# (.NET 8)**: Core application, system integration, UI
-- **Python 3.10+**: Whisper model integration
-- **NAudio**: Audio recording
-- **OpenAI Whisper**: Speech recognition model
-
-### Key Components
-```
-┌─────────────────────────────────────────┐
-│         System Tray Application         │
-├─────────────────────────────────────────┤
-│  HotkeyManager │ AudioRecorder │ Tray   │
-├─────────────────────────────────────────┤
-│         WhisperEngine (Python)          │
-├─────────────────────────────────────────┤
-│  Clipboard Manager │ Auto-Paster        │
-└─────────────────────────────────────────┘
-```
-
----
-
-## Configuration
-
-Settings are stored in `%APPDATA%\MicDup\appsettings.json`:
-
-```json
-{
-  "hotkey": {
-    "modifiers": "Control+Shift",
-    "key": "Space"
-  },
-  "whisper": {
-    "model": "base",
-    "language": "en"
-  },
-  "behavior": {
-    "autoPaste": true,
-    "showNotifications": true
-  }
-}
-```
-
-Edit via Settings UI (right-click tray icon → Settings)
-
----
-
-## Hotkey Customization
-
-Default: **CTRL+SHIFT+SPACE**
-
-### Why not WIN+SPACE?
-Windows uses WIN+SPACE for input method switching. We use CTRL+SHIFT+SPACE by default to avoid conflicts.
-
-### Want to use WIN+SPACE anyway?
-See [docs/HOTKEY_OVERRIDE.md](docs/HOTKEY_OVERRIDE.md) for instructions on disabling Windows' hotkey (advanced users only).
-
-### Changing the Hotkey
-Right-click tray icon → Settings → Hotkey tab
-
----
-
-## Whisper Models
-
-Choose the right balance of speed vs accuracy:
-
-| Model | Size | Speed | Accuracy | Best For |
-|-------|------|-------|----------|----------|
-| `tiny` | 39MB | ~1s | Good | Quick notes, commands |
-| `base` | 74MB | ~2s | Better | **Recommended** |
-| `small` | 244MB | ~5s | Great | Dictation, articles |
-| `medium` | 769MB | ~15s | Excellent | Professional transcription |
-| `large` | 1550MB | ~30s | Best | Highest accuracy needs |
-
-Change model: Right-click tray icon → Settings → Whisper Model
-
----
-
-## Privacy & Security
-
-- **Local Processing**: Audio never leaves your machine (when using local models)
-- **No Telemetry**: We don't collect any data about your usage
-- **No Account Required**: Install and use immediately
-- **Open Source**: Audit the code yourself
+- **GPU** (optional): Vulkan-capable GPU for the Vulkan build
 
 ---
 
 ## Troubleshooting
 
-### Hotkey doesn't work
-- Check for conflicts with other applications
-- Try changing the hotkey in Settings
-- Run as Administrator (some apps require elevated permissions)
-
-### No transcription / blank clipboard
-- Ensure you speak clearly and close to microphone
-- Check microphone is selected in Windows sound settings
-- Verify Python and Whisper model installed correctly
-
-### Application won't start
-- Check logs in `%APPDATA%\MicDup\logs\app.log`
-- Ensure .NET 8 Runtime is installed
-- Try reinstalling the application
-
-### Transcription is slow
-- Try a smaller model (Settings → Whisper Model → `tiny`)
-- Check CPU usage during transcription
-- Consider using OpenAI API mode (requires API key)
-
----
-
-## Development Status
-
-**Current Phase**: Design & Planning ✅
-**Next Phase**: Phase 1 - Core Functionality (MVP)
-
-See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for roadmap and progress.
-
----
-
-## Contributing
-
-We welcome contributions! Areas where we need help:
-
-- Testing on different Windows versions
-- Icon design and UI improvements
-- Documentation and tutorials
-- Bug reports and feature requests
-
-Please open an issue before starting major work.
-
----
-
-## Roadmap
-
-### MVP (Phase 1-2)
-- [x] Design and architecture
-- [ ] Audio recording
-- [ ] Whisper integration
-- [ ] Clipboard copy
-- [ ] System tray icon
-- [ ] Global hotkey
-- [ ] Auto-paste
-
-### Post-MVP (Phase 3-5)
-- [ ] Settings UI
-- [ ] Multiple languages
-- [ ] Custom vocabulary
-- [ ] Transcription history
-- [ ] Auto-update mechanism
-- [ ] Punctuation commands ("period", "comma")
-
-### Future
-- [ ] OpenAI API integration option
-- [ ] Real-time transcription (streaming)
-- [ ] Text formatting options
-- [ ] Plugin system
-- [ ] Mobile companion app
-
----
-
-## License
-
-[MIT License](LICENSE) - See LICENSE file for details
+| Problem | Solution |
+|---------|----------|
+| Hotkey doesn't work | Check for conflicts with other apps; change hotkey in Settings |
+| No transcription | Ensure microphone is working in Windows sound settings |
+| Transcription is slow | Use a smaller model (tiny/base) or try the Vulkan GPU build |
+| App won't start | Check logs in `%APPDATA%\MicDup\logs\` |
 
 ---
 
 ## Acknowledgments
 
-- [OpenAI Whisper](https://github.com/openai/whisper) - Speech recognition model
-- [NAudio](https://github.com/naudio/NAudio) - Audio library for .NET
-- [Hardcodet.NotifyIcon.Wpf](https://github.com/hardcodet/wpf-notifyicon) - System tray icon
+- **[Mic'd Up](https://github.com/micd-up/micd-up)** — the original macOS voice-to-text app that inspired this project. MicDup brings the same experience to Windows.
+- **[whisper.cpp](https://github.com/ggerganov/whisper.cpp)** — high-performance C++ implementation of OpenAI's Whisper model
+- **[OpenAI Whisper](https://github.com/openai/whisper)** — the speech recognition model that makes this all possible
 
 ---
 
-## Support
+## License
 
-- **Documentation**: See [docs/](docs/) folder
-- **Issues**: [GitHub Issues](https://github.com/yourusername/micdup/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/micdup/discussions)
-
----
-
-## Changelog
-
-### v0.1.0 (Planned) - MVP Release
-- Initial release with core functionality
-- System tray application
-- Global hotkey recording
-- Whisper transcription
-- Clipboard integration
-- Auto-paste feature
-
----
-
-**Made with ❤️ for productivity enthusiasts**
+[MIT License](LICENSE)
