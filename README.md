@@ -1,22 +1,30 @@
 # MicDup
 
-**Privacy-first voice-to-text for Windows. No cloud. No accounts. Just your voice, on your machine.**
+**Think it. Say it. Ship it. Voice-to-text for Windows that keeps your data yours.**
 
 MicDup is a single-file Windows application that transcribes your speech to text using [OpenAI's Whisper](https://github.com/openai/whisper) model running entirely on your machine. Press a hotkey, speak, press again — your words are in your clipboard and optionally pasted where you're typing. No audio ever leaves your computer.
 
-> Inspired by [Mic'd Up](https://github.com/micd-up/micd-up), a fantastic macOS menu bar app built by [@micd-up](https://github.com/micd-up). MicDup brings the same privacy-first, local-only voice-to-text experience to Windows.
+> Inspired by [Mic'd Up](https://github.com/micd-up/micd-up), a fantastic macOS menu bar app by [@micd-up](https://github.com/micd-up). A colleague built that for Mac — I built MicDup to bring the same experience to Windows.
 
 ---
 
 ## Why MicDup?
 
-Every major voice-to-text tool sends your audio to the cloud. That means your private conversations, medical notes, legal dictation, personal journal entries — all processed on someone else's server.
+### Talk to your AI, don't type at it
 
-**MicDup is different:**
+We live in the age of AI-assisted development. Tools like Claude, Copilot, and ChatGPT are writing code alongside us. But there's an irony: while AI makes us faster at coding, we're still bottlenecked by *typing our prompts*. Ideas move at the speed of thought — typing moves at 80 words per minute.
+
+MicDup removes that bottleneck. Speak your idea, your prompt, your instruction — and it flows directly into whatever you're working in. No context switching. No slowing down to type. Just think, speak, and ship. The result isn't just faster — it's more creative. When you're not wrestling with a keyboard, your ideas come out more naturally, more completely, and with less friction.
+
+### Your voice, your machine, your data
+
+Every major voice-to-text tool sends your audio to the cloud. Your meetings, your brainstorming sessions, your private thoughts — all processed on someone else's server.
+
+MicDup is different:
 
 - **100% local** — Whisper runs on your CPU/GPU. No internet needed after initial model download.
 - **Zero data collection** — No telemetry, no analytics, no accounts, no sign-ups.
-- **Single executable** — One ~2MB file. Copy it anywhere. No installer, no runtime dependencies, no .NET, no Python.
+- **Single executable** — One ~2MB file. Copy it anywhere. No installer, no runtime dependencies.
 - **Open source** — Read every line of code. Build it yourself if you want.
 
 Your voice stays on your machine. Period.
