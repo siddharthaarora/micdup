@@ -55,11 +55,11 @@ namespace micdup {
 
 struct HotkeySettings {
 #ifdef __APPLE__
-    uint32_t modifiers = MOD_WIN | MOD_SHIFT; // Cmd+Shift on macOS
+    uint32_t modifiers = 0x0C; // MOD_WIN | MOD_SHIFT (Cmd+Shift)
 #else
-    uint32_t modifiers = MOD_CONTROL | MOD_SHIFT; // Ctrl+Shift on Windows
+    uint32_t modifiers = 0x06; // MOD_CONTROL | MOD_SHIFT (Ctrl+Shift)
 #endif
-    uint32_t key       = VK_SPACE;
+    uint32_t key       = 0x20; // VK_SPACE
     bool     enabled   = true;
 };
 
