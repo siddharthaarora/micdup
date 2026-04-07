@@ -3,8 +3,6 @@
 #include "clipboard.h"
 #include "log.h"
 
-#include <unistd.h>
-
 namespace micdup {
 
 bool clipboard_set_text(const std::string& text) {
@@ -26,37 +24,30 @@ bool clipboard_set_text(const std::string& text) {
 }
 
 bool is_foreground_text_input() {
-    // On macOS we always attempt paste — accessibility will gate it
     return true;
 }
 
 void clipboard_autopaste() {
-    @autoreleasepool {
-        // Delay to let clipboard settle and target app regain focus
-        usleep(200000); // 200ms
+    // Dispatch to main thread with delay to let hotkey modifiers release
+    // and target app regain focus
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 400 * NSEC_PER_MSEC),
+                   dispatch_get_main_queue(), ^{
+        @autoreleasepool {
+            // Use AppleScript to simulate Cmd+V — most reliable method on macOS
+            NSString* script = @"tell application \"System Events\" to keystroke \"v\" using command down";
+            NSAppleScript* appleScript = [[NSAppleScript alloc] initWithSource:script];
+            NSDictionary* errorDict = nil;
+            [appleScript executeAndReturnError:&errorDict];
 
-        // Simulate Cmd+V using CGEvents
-        CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
-        if (!source) {
-            log_error("Failed to create CGEventSource for paste");
-            return;
+            if (errorDict) {
+                NSString* errMsg = [errorDict objectForKey:NSAppleScriptErrorMessage];
+                log_error("Auto-paste AppleScript failed: {}",
+                          errMsg ? [errMsg UTF8String] : "unknown error");
+            } else {
+                log_info("Auto-paste executed (Cmd+V via AppleScript)");
+            }
         }
-
-        CGEventRef vDown = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_ANSI_V, true);
-        CGEventRef vUp   = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_ANSI_V, false);
-
-        CGEventSetFlags(vDown, kCGEventFlagMaskCommand);
-        CGEventSetFlags(vUp,   kCGEventFlagMaskCommand);
-
-        CGEventPost(kCGAnnotatedSessionEventTap, vDown);
-        CGEventPost(kCGAnnotatedSessionEventTap, vUp);
-
-        CFRelease(vDown);
-        CFRelease(vUp);
-        CFRelease(source);
-
-        log_info("Auto-paste executed (Cmd+V)");
-    }
+    });
 }
 
 } // namespace micdup
