@@ -1,10 +1,10 @@
 # MicDup
 
-**Think it. Say it. Ship it. Voice-to-text for Windows that keeps your data yours.**
+**Think it. Say it. Ship it. Voice-to-text for Windows and macOS that keeps your data yours.**
 
-MicDup is a single-file Windows application that transcribes your speech to text using [OpenAI's Whisper](https://github.com/openai/whisper) model running entirely on your machine. Press a hotkey, speak, press again — your words are in your clipboard and optionally pasted where you're typing. No audio ever leaves your computer.
+MicDup is a lightweight application that transcribes your speech to text using [OpenAI's Whisper](https://github.com/openai/whisper) model running entirely on your machine. Press a hotkey, speak, press again — your words are in your clipboard and optionally pasted where you're typing. No audio ever leaves your computer.
 
-> Inspired by [Mic'd Up](https://github.com/micd-up/micd-up), a fantastic macOS menu bar app by [@micd-up](https://github.com/micd-up). A colleague built that for Mac — I built MicDup to bring the same experience to Windows.
+> Inspired by [Mic'd Up](https://github.com/micd-up/micd-up), a fantastic macOS menu bar app by [@micd-up](https://github.com/micd-up).
 
 ---
 
@@ -24,7 +24,7 @@ MicDup is different:
 
 - **100% local** — Whisper runs on your CPU/GPU. No internet needed after initial model download.
 - **Zero data collection** — No telemetry, no analytics, no accounts, no sign-ups.
-- **Single executable** — One ~2MB file. Copy it anywhere. No installer, no runtime dependencies.
+- **Single app** — One ~2MB binary. No installer, no runtime dependencies.
 - **Open source** — Read every line of code. Build it yourself if you want.
 
 Your voice stays on your machine. Period.
@@ -32,6 +32,8 @@ Your voice stays on your machine. Period.
 ---
 
 ## Quick Start
+
+### Windows
 
 1. Download `MicDup-vX.X.X-win-x64-cpu.zip` from [Releases](https://github.com/siddharthaarora/micdup/releases)
 2. Extract `MicDup.exe` anywhere
@@ -41,38 +43,52 @@ Your voice stays on your machine. Period.
 6. Press **Ctrl+Shift+Space** again
 7. Your text is in the clipboard (and auto-pasted if a text field is focused)
 
+### macOS
+
+1. Download `MicDup-vX.X.X-mac-arm64.zip` (Apple Silicon) or `MicDup-vX.X.X-mac-x64.zip` (Intel) from [Releases](https://github.com/siddharthaarora/micdup/releases)
+2. Extract `MicDup.app` and move it to Applications
+3. Run it — a microphone icon appears in your menu bar
+4. Grant microphone permission when prompted
+5. Press **Cmd+Shift+Space** to start recording
+6. Speak
+7. Press **Cmd+Shift+Space** again
+8. Your text is in the clipboard (and auto-pasted if a text field is focused)
+
 First run downloads the Whisper model (~150MB for "base"). After that, no internet is needed.
 
 ---
 
 ## Features
 
-- **Global Hotkey** — Ctrl+Shift+Space (configurable) to start/stop recording
-- **System Tray** — Unobtrusive background operation with visual status indicators
+- **Global Hotkey** — Ctrl+Shift+Space on Windows, Cmd+Shift+Space on macOS (configurable)
+- **System Tray / Menu Bar** — Unobtrusive background operation with visual status indicators
 - **Local Transcription** — OpenAI Whisper via [whisper.cpp](https://github.com/ggerganov/whisper.cpp), running natively
 - **Auto-Paste** — Automatically pastes transcribed text into the focused window
 - **Clipboard Integration** — Text always copied to clipboard
-- **GPU Acceleration** — Vulkan build available for faster transcription on AMD/NVIDIA/Intel GPUs
+- **GPU Acceleration** — Vulkan on Windows, Metal on macOS
 - **Multiple Model Sizes** — Choose between speed (tiny) and accuracy (large)
 - **Auto-Update** — Checks GitHub releases and updates in-place
-- **Zero Dependencies** — Single static executable, no runtime needed
+- **Zero Dependencies** — Single static binary, no runtime needed
 
 ---
 
 ## Downloads
 
-| Build | Best For | GPU Support |
-|-------|----------|-------------|
-| **[CPU](https://github.com/siddharthaarora/micdup/releases/latest)** | Works everywhere | CPU only |
-| **[Vulkan](https://github.com/siddharthaarora/micdup/releases/latest)** | Faster transcription | AMD, NVIDIA, Intel GPUs |
-
-Both are a single `MicDup.exe` file. No installer needed.
+| Platform | Build | GPU Support |
+|----------|-------|-------------|
+| **[Windows CPU](https://github.com/siddharthaarora/micdup/releases/latest)** | Works everywhere | CPU only |
+| **[Windows Vulkan](https://github.com/siddharthaarora/micdup/releases/latest)** | Faster transcription | AMD, NVIDIA, Intel GPUs |
+| **[macOS Apple Silicon](https://github.com/siddharthaarora/micdup/releases/latest)** | M1/M2/M3/M4 Macs | Metal GPU |
+| **[macOS Intel](https://github.com/siddharthaarora/micdup/releases/latest)** | Older Macs | Metal GPU |
 
 ---
 
 ## Whisper Models
 
-Models are auto-downloaded on first use and stored in `%LOCALAPPDATA%\MicDup\Models\`.
+Models are auto-downloaded on first use.
+
+- **Windows**: stored in `%LOCALAPPDATA%\MicDup\Models\`
+- **macOS**: stored in `~/Library/Application Support/MicDup/Models/`
 
 | Model | Download | Speed | Accuracy | Best For |
 |-------|----------|-------|----------|----------|
@@ -82,17 +98,21 @@ Models are auto-downloaded on first use and stored in `%LOCALAPPDATA%\MicDup\Mod
 | `medium` | ~1.5 GB | ~15s | Excellent | Professional transcription |
 | `large` | ~3 GB | ~30s | Best | Maximum accuracy |
 
-Change model: right-click tray icon > Settings > Whisper Model.
+Change model: right-click tray/menu bar icon > Settings > Whisper Model.
 
 ---
 
 ## Configuration
 
-Settings are stored in `%APPDATA%\MicDup\settings.json` and editable via the Settings dialog (right-click tray icon > Settings):
+Settings are editable via the Settings dialog (right-click tray/menu bar icon > Settings):
 
 - **Hotkey** — any modifier+key combination
 - **Whisper model** — tiny, base, small, medium, large
-- **Auto-paste** — toggle automatic Ctrl+V into focused window
+- **Auto-paste** — toggle automatic paste into focused window
+
+Settings file location:
+- **Windows**: `%APPDATA%\MicDup\settings.json`
+- **macOS**: `~/Library/Application Support/MicDup/settings.json`
 
 ---
 
@@ -111,6 +131,8 @@ This is the core principle behind MicDup:
 
 ## Building from Source
 
+### Windows
+
 Requires: Visual Studio 2022 (or Build Tools) with C++ workload.
 
 ```bash
@@ -123,19 +145,36 @@ cmake -S src/cpp -B build -G "Visual Studio 17 2022" -A x64 -DMICDUP_VULKAN=ON
 cmake --build build --config Release
 ```
 
-Or use presets:
+Output: `build/Release/MicDup.exe`
+
+### macOS
+
+Requires: Xcode Command Line Tools.
 
 ```bash
-cmake --preset release-cpu
-cmake --build --preset release-cpu
+# Build with Metal GPU support
+cmake -S src/cpp -B build -DCMAKE_BUILD_TYPE=Release -DMICDUP_METAL=ON
+cmake --build build --config Release --parallel
 ```
 
-Output: `build/Release/MicDup.exe`
+Output: `build/MicDup.app`
+
+### Presets
+
+```bash
+# Windows
+cmake --preset release-cpu && cmake --build --preset release-cpu
+cmake --preset release-vulkan && cmake --build --preset release-vulkan
+
+# macOS
+cmake --preset release-mac && cmake --build --preset release-mac
+```
 
 ### Architecture
 
-MicDup is written in C++20 with zero external dependencies beyond whisper.cpp (fetched at build time). Everything uses native Win32 APIs:
+MicDup is written in C++20 with zero external dependencies beyond whisper.cpp (fetched at build time). Platform-specific code uses native APIs:
 
+**Windows:**
 ```
 MicDup.exe (~2MB single static binary)
 ├── whisper.cpp          — speech recognition (statically linked)
@@ -147,17 +186,32 @@ MicDup.exe (~2MB single static binary)
 └── Win32 dialogs        — settings UI
 ```
 
-Static CRT linkage (`/MT`) — no DLL dependencies at all.
+**macOS:**
+```
+MicDup.app (~2MB app bundle)
+├── whisper.cpp          — speech recognition (statically linked, Metal GPU)
+├── AVAudioEngine        — microphone audio capture (16kHz mono PCM)
+├── NSStatusItem         — menu bar icon and context menu
+├── Carbon hotkeys       — global hotkey registration
+├── NSURLSession         — model download and update checks
+├── NSBezierPath         — dynamic menu bar icon rendering
+└── AppKit               — settings UI
+```
 
 ---
 
 ## System Requirements
 
+### Windows
 - **OS**: Windows 10 (1809+) or Windows 11
 - **RAM**: 2 GB minimum (4 GB+ recommended for larger models)
-- **Disk**: ~2 MB for the app + 75 MB–3 GB for the chosen Whisper model
-- **Microphone**: Any audio input device
 - **GPU** (optional): Vulkan-capable GPU for the Vulkan build
+
+### macOS
+- **OS**: macOS 12 (Monterey) or later
+- **Architecture**: Apple Silicon (M1+) or Intel x86_64
+- **RAM**: 2 GB minimum (4 GB+ recommended for larger models)
+- **Permissions**: Microphone access (prompted on first run)
 
 ---
 
@@ -166,15 +220,17 @@ Static CRT linkage (`/MT`) — no DLL dependencies at all.
 | Problem | Solution |
 |---------|----------|
 | Hotkey doesn't work | Check for conflicts with other apps; change hotkey in Settings |
-| No transcription | Ensure microphone is working in Windows sound settings |
-| Transcription is slow | Use a smaller model (tiny/base) or try the Vulkan GPU build |
-| App won't start | Check logs in `%APPDATA%\MicDup\logs\` |
+| No transcription | Ensure microphone is working in system settings |
+| Transcription is slow | Use a smaller model (tiny/base) or try GPU build |
+| App won't start | Check logs in settings directory |
+| macOS: "can't be opened" | Right-click > Open, or allow in System Settings > Privacy |
+| macOS: no auto-paste | Grant Accessibility permission in System Settings > Privacy > Accessibility |
 
 ---
 
 ## Acknowledgments
 
-- **[Mic'd Up](https://github.com/micd-up/micd-up)** — the original macOS voice-to-text app that inspired this project. MicDup brings the same experience to Windows.
+- **[Mic'd Up](https://github.com/micd-up/micd-up)** — the original macOS voice-to-text app that inspired this project
 - **[whisper.cpp](https://github.com/ggerganov/whisper.cpp)** — high-performance C++ implementation of OpenAI's Whisper model
 - **[OpenAI Whisper](https://github.com/openai/whisper)** — the speech recognition model that makes this all possible
 

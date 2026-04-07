@@ -4,10 +4,10 @@
 
 namespace micdup {
 
-/// Copy UTF-8 text to the Windows clipboard.
+/// Copy UTF-8 text to the clipboard.
 bool clipboard_set_text(const std::string& text);
 
-/// Simulate Ctrl+V to paste from clipboard into the foreground window.
+/// Simulate paste (Ctrl+V on Windows, Cmd+V on macOS).
 void clipboard_autopaste();
 
 /// Returns true if there is a foreground window that might accept text.

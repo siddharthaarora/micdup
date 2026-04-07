@@ -9,19 +9,12 @@ permissions:
   contents: write
 
 jobs:
-  build-cpu:
+  # ── Windows CPU build ──────────────────────────────────────────────────
+  build-win-cpu:
     runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set version from tag
-        id: version
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $ver = $tag.TrimStart('v')
-          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
 
       - name: Configure CMake
         run: >
@@ -46,13 +39,14 @@ jobs:
             exit 1
           }
 
-      - name: Create GitHub Release
+      - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
           files: ./MicDup-${{ github.ref_name }}-win-x64-cpu.zip
           generate_release_notes: true
 
-  build-vulkan:
+  # ── Windows Vulkan build ───────────────────────────────────────────────
+  build-win-vulkan:
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -67,14 +61,6 @@ jobs:
           $sdkPath = Get-ChildItem "C:\VulkanSDK" -Directory | Sort-Object Name -Descending | Select-Object -First 1
           echo "VULKAN_SDK=$($sdkPath.FullName)" >> $env:GITHUB_ENV
           echo "$($sdkPath.FullName)\Bin" >> $env:GITHUB_PATH
-
-      - name: Set version from tag
-        id: version
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $ver = $tag.TrimStart('v')
-          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
 
       - name: Configure CMake
         run: >
@@ -103,3 +89,69 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ./MicDup-${{ github.ref_name }}-win-x64-vulkan.zip
+
+  # ── macOS Apple Silicon (arm64) build ──────────────────────────────────
+  build-mac-arm64:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >
+          cmake -S src/cpp -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES=arm64
+          -DMICDUP_METAL=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Create release zip
+        run: |
+          APP_PATH="build/MicDup.app"
+          if [ -d "$APP_PATH" ]; then
+            cd build
+            zip -r "../MicDup-${{ github.ref_name }}-mac-arm64.zip" MicDup.app
+          else
+            echo "MicDup.app not found"
+            exit 1
+          fi
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./MicDup-${{ github.ref_name }}-mac-arm64.zip
+
+  # ── macOS Intel (x64) build ────────────────────────────────────────────
+  build-mac-x64:
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: >
+          cmake -S src/cpp -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES=x86_64
+          -DMICDUP_METAL=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Create release zip
+        run: |
+          APP_PATH="build/MicDup.app"
+          if [ -d "$APP_PATH" ]; then
+            cd build
+            zip -r "../MicDup-${{ github.ref_name }}-mac-x64.zip" MicDup.app
+          else
+            echo "MicDup.app not found"
+            exit 1
+          fi
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./MicDup-${{ github.ref_name }}-mac-x64.zip

@@ -1,0 +1,72 @@
+#include "log.h"
+
+#include <fstream>
+#include <mutex>
+#include <chrono>
+#include <ctime>
+#include <filesystem>
+
+namespace micdup {
+
+static std::ofstream g_log_file;
+static std::mutex    g_log_mutex;
+
+static std::string timestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto t   = std::chrono::system_clock::to_time_t(now);
+    struct tm local{};
+    localtime_r(&t, &local);
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &local);
+    return buf;
+}
+
+static std::string date_string() {
+    auto now = std::chrono::system_clock::now();
+    auto t   = std::chrono::system_clock::to_time_t(now);
+    struct tm local{};
+    localtime_r(&t, &local);
+    char buf[16];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d", &local);
+    return buf;
+}
+
+static const char* level_str(LogLevel lv) {
+    switch (lv) {
+        case LogLevel::Debug:   return "DBG";
+        case LogLevel::Info:    return "INF";
+        case LogLevel::Warning: return "WRN";
+        case LogLevel::Error:   return "ERR";
+        case LogLevel::Fatal:   return "FTL";
+    }
+    return "???";
+}
+
+void log_init(const std::string& app_data_dir) {
+    std::lock_guard lock(g_log_mutex);
+
+    auto logs_dir = app_data_dir + "/logs";
+    std::filesystem::create_directories(logs_dir);
+
+    auto ds = date_string();
+    auto path = logs_dir + "/app-" + ds + ".log";
+
+    g_log_file.open(path, std::ios::app);
+}
+
+void log_shutdown() {
+    std::lock_guard lock(g_log_mutex);
+    if (g_log_file.is_open())
+        g_log_file.close();
+}
+
+void log_write(LogLevel level, std::string_view message) {
+    std::lock_guard lock(g_log_mutex);
+    if (!g_log_file.is_open()) return;
+
+    g_log_file << "[" << timestamp() << "] [" << level_str(level) << "] "
+               << message << "\n";
+    g_log_file.flush();
+}
+
+} // namespace micdup

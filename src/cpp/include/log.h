@@ -8,8 +8,12 @@ namespace micdup {
 
 enum class LogLevel { Debug, Info, Warning, Error, Fatal };
 
-/// Initialise file logging to %APPDATA%\MicDup\logs\app-YYYY-MM-DD.log
+/// Initialise file logging.
+#ifdef _WIN32
 void log_init(const std::wstring& app_data_dir);
+#elif defined(__APPLE__)
+void log_init(const std::string& app_data_dir);
+#endif
 
 /// Flush and close the log file.
 void log_shutdown();
