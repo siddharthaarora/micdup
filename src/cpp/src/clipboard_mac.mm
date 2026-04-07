@@ -28,24 +28,44 @@ bool is_foreground_text_input() {
 }
 
 void clipboard_autopaste() {
-    // Dispatch to main thread with delay to let hotkey modifiers release
-    // and target app regain focus
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 400 * NSEC_PER_MSEC),
+    // Dispatch to main thread with delay so hotkey modifiers (Cmd+Shift)
+    // have been fully released and the target app has regained focus.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MSEC),
                    dispatch_get_main_queue(), ^{
         @autoreleasepool {
-            // Use AppleScript to simulate Cmd+V — most reliable method on macOS
-            NSString* script = @"tell application \"System Events\" to keystroke \"v\" using command down";
-            NSAppleScript* appleScript = [[NSAppleScript alloc] initWithSource:script];
-            NSDictionary* errorDict = nil;
-            [appleScript executeAndReturnError:&errorDict];
-
-            if (errorDict) {
-                NSString* errMsg = [errorDict objectForKey:NSAppleScriptErrorMessage];
-                log_error("Auto-paste AppleScript failed: {}",
-                          errMsg ? [errMsg UTF8String] : "unknown error");
-            } else {
-                log_info("Auto-paste executed (Cmd+V via AppleScript)");
+            CGEventSourceRef source =
+                CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
+            if (!source) {
+                log_error("Auto-paste: failed to create event source");
+                return;
             }
+
+            // First, release all modifier keys to clear any stuck state
+            CGEventRef flagsClear = CGEventCreate(source);
+            CGEventSetFlags(flagsClear, (CGEventFlags)0);
+            CGEventPost(kCGHIDEventTap, flagsClear);
+            CFRelease(flagsClear);
+
+            // Small delay after clearing flags
+            usleep(50000); // 50ms
+
+            // Key down: V with Command
+            CGEventRef keyDown = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, true);
+            CGEventSetFlags(keyDown, kCGEventFlagMaskCommand);
+            CGEventPost(kCGHIDEventTap, keyDown);
+            CFRelease(keyDown);
+
+            // Small delay between down and up
+            usleep(20000); // 20ms
+
+            // Key up: V with Command
+            CGEventRef keyUp = CGEventCreateKeyboardEvent(source, kVK_ANSI_V, false);
+            CGEventSetFlags(keyUp, kCGEventFlagMaskCommand);
+            CGEventPost(kCGHIDEventTap, keyUp);
+            CFRelease(keyUp);
+
+            CFRelease(source);
+            log_info("Auto-paste executed (Cmd+V)");
         }
     });
 }
