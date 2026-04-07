@@ -2,7 +2,7 @@
 #import <UserNotifications/UserNotifications.h>
 #include "tray.h"
 #include "icons.h"
-#include "updater.h"
+#include "settings.h"
 #include "log.h"
 
 // ── Tray controller ─────────────────────────────────────────────────────
@@ -92,11 +92,6 @@ static micdup::TrayCallbacks g_cb;
     settingsItem.target = self;
     [menu addItem:settingsItem];
 
-    NSMenuItem* updateItem = [[NSMenuItem alloc] initWithTitle:@"Check for Updates..."
-        action:@selector(onCheckUpdates:) keyEquivalent:@""];
-    updateItem.target = self;
-    [menu addItem:updateItem];
-
     [menu addItem:[NSMenuItem separatorItem]];
 
     NSMenuItem* exitItem = [[NSMenuItem alloc] initWithTitle:@"Quit MicDup"
@@ -114,10 +109,6 @@ static micdup::TrayCallbacks g_cb;
 
 - (void)onSettings:(id)sender {
     if (g_cb.on_settings) g_cb.on_settings();
-}
-
-- (void)onCheckUpdates:(id)sender {
-    if (g_cb.on_check_updates) g_cb.on_check_updates();
 }
 
 - (void)onExit:(id)sender {

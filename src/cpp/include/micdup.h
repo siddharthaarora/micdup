@@ -11,6 +11,5 @@
 #include "whisper_engine.h"
 #include "clipboard.h"
 #include "model_downloader.h"
-#include "updater.h"
 #include "settings_dialog.h"
 #include "app.h"

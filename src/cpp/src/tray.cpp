@@ -1,6 +1,6 @@
 #include "tray.h"
 #include "icons.h"
-#include "updater.h"
+#include "settings.h"
 #include "log.h"
 
 #include <shellapi.h>
@@ -13,7 +13,6 @@ namespace micdup {
 static constexpr UINT WM_TRAY_ICON    = WM_APP + 1;
 static constexpr UINT IDM_START_STOP  = 1001;
 static constexpr UINT IDM_SETTINGS    = 1002;
-static constexpr UINT IDM_UPDATES     = 1003;
 static constexpr UINT IDM_EXIT        = 1004;
 static constexpr UINT IDT_ANIMATION   = 2001;
 static constexpr UINT IDT_RESET_IDLE  = 2002;
@@ -70,7 +69,6 @@ static void rebuild_menu() {
 
     AppendMenuW(g_menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(g_menu, MF_STRING, IDM_SETTINGS, L"Settings...");
-    AppendMenuW(g_menu, MF_STRING, IDM_UPDATES, L"Check for Updates...");
     AppendMenuW(g_menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(g_menu, MF_STRING, IDM_EXIT, L"Exit");
 }
@@ -97,7 +95,6 @@ static LRESULT CALLBACK tray_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) 
             switch (LOWORD(wp)) {
                 case IDM_START_STOP: if (g_cb.on_start_stop)    g_cb.on_start_stop();    break;
                 case IDM_SETTINGS:   if (g_cb.on_settings)      g_cb.on_settings();      break;
-                case IDM_UPDATES:    if (g_cb.on_check_updates) g_cb.on_check_updates(); break;
                 case IDM_EXIT:       if (g_cb.on_exit)          g_cb.on_exit();          break;
             }
             return 0;

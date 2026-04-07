@@ -23,14 +23,12 @@ static void toggle_recording();
 static void start_recording();
 static void stop_and_transcribe();
 static void on_settings();
-static void on_check_updates(bool silent);
 
 } // namespace micdup
 
 // ── App Delegate ────────────────────────────────────────────────────────
 
 @interface MicDupAppDelegate : NSObject <NSApplicationDelegate>
-@property (assign) BOOL justUpdated;
 @end
 
 @implementation MicDupAppDelegate
@@ -44,7 +42,6 @@ static void on_check_updates(bool silent);
     TrayCallbacks cb;
     cb.on_start_stop    = []() { toggle_recording(); };
     cb.on_settings      = []() { on_settings(); };
-    cb.on_check_updates = []() { on_check_updates(false); };
     cb.on_exit          = []() {
         g_running = false;
         [NSApp terminate:nil];
@@ -102,21 +99,7 @@ static void on_check_updates(bool silent);
     hotkey_register(g_settings.hotkey.modifiers, g_settings.hotkey.key);
 
     tray_set_state(TrayState::Idle);
-
-    if (self.justUpdated) {
-        auto msg = std::string("Successfully updated to v") + MICDUP_VERSION + "!";
-        tray_notify("MicDup", msg.c_str());
-    } else {
-#ifdef __APPLE__
-        tray_notify("MicDup", "Ready! Press Cmd+Shift+Space to record.");
-#endif
-    }
-
-    // Background update check after 5 seconds
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC),
-                   dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        on_check_updates(true);
-    });
+    tray_notify("MicDup", "Ready! Press Cmd+Shift+Space to record.");
 
     log_info("App initialised, entering run loop");
 }
@@ -140,7 +123,6 @@ int app_run(bool just_updated) {
         [app setActivationPolicy:NSApplicationActivationPolicyAccessory];
 
         MicDupAppDelegate* delegate = [[MicDupAppDelegate alloc] init];
-        delegate.justUpdated = just_updated ? YES : NO;
         [app setDelegate:delegate];
 
         [app run];
@@ -261,49 +243,6 @@ static void on_settings() {
 
         log_info("Settings applied");
     }
-}
-
-// ── Update check ────────────────────────────────────────────────────────
-
-static void on_check_updates(bool silent) {
-    auto release = check_for_update();
-    if (!release) {
-        if (!silent) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                NSAlert* alert = [[NSAlert alloc] init];
-                auto msg = std::string("You're running the latest version (v") +
-                           app_version() + ").";
-                alert.messageText = @"MicDup";
-                alert.informativeText = [NSString stringWithUTF8String:msg.c_str()];
-                [alert runModal];
-            });
-        }
-        return;
-    }
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        NSAlert* alert = [[NSAlert alloc] init];
-        auto msg = "A new version is available: " + release->tag +
-                   "\nCurrent version: v" + std::string(app_version()) +
-                   "\n\nDownload and install the update?";
-        alert.messageText = @"MicDup Update";
-        alert.informativeText = [NSString stringWithUTF8String:msg.c_str()];
-        [alert addButtonWithTitle:@"Update"];
-        [alert addButtonWithTitle:@"Later"];
-
-        if ([alert runModal] != NSAlertFirstButtonReturn) return;
-
-        tray_notify("MicDup", "Downloading update...");
-        if (download_and_apply_update(*release)) {
-            [NSApp terminate:nil];
-        } else {
-            NSAlert* errAlert = [[NSAlert alloc] init];
-            errAlert.messageText = @"MicDup";
-            errAlert.informativeText = @"Update failed. Try again later or download from GitHub.";
-            errAlert.alertStyle = NSAlertStyleWarning;
-            [errAlert runModal];
-        }
-    });
 }
 
 } // namespace micdup

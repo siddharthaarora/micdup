@@ -30,7 +30,6 @@ static void toggle_recording();
 static void start_recording();
 static void stop_and_transcribe();
 static void on_settings();
-static void on_check_updates(bool silent);
 
 // ── App entry ───────────────────────────────────────────────────────────
 
@@ -41,7 +40,6 @@ int app_run(HINSTANCE hInstance, bool just_updated) {
     TrayCallbacks cb;
     cb.on_start_stop    = []() { toggle_recording(); };
     cb.on_settings      = []() { on_settings(); };
-    cb.on_check_updates = []() { on_check_updates(false); };
     cb.on_exit          = []() { g_running = false; PostQuitMessage(0); };
 
     if (!tray_init(hInstance, cb)) {
@@ -78,19 +76,7 @@ int app_run(HINSTANCE hInstance, bool just_updated) {
 
     tray_set_state(TrayState::Idle);
 
-    if (just_updated) {
-        auto msg = std::wstring(L"Successfully updated to v") +
-                   std::wstring(MICDUP_VERSION, MICDUP_VERSION + strlen(MICDUP_VERSION)) + L"!";
-        tray_notify(L"MicDup", msg.c_str());
-    } else {
-        tray_notify(L"MicDup", L"Ready! Press Ctrl+Shift+Space to record.");
-    }
-
-    // Background update check after 5 seconds
-    std::thread([]() {
-        Sleep(5000);
-        on_check_updates(true);
-    }).detach();
+    tray_notify(L"MicDup", L"Ready! Press Ctrl+Shift+Space to record.");
 
     log_info("App initialised, entering message loop");
 
@@ -216,37 +202,6 @@ static void on_settings() {
         }
 
         log_info("Settings applied");
-    }
-}
-
-// ── Update check ────────────────────────────────────────────────────────
-
-static void on_check_updates(bool silent) {
-    auto release = check_for_update();
-    if (!release) {
-        if (!silent) {
-            auto msg = std::wstring(L"You're running the latest version (v") +
-                       std::wstring(MICDUP_VERSION, MICDUP_VERSION + strlen(MICDUP_VERSION)) + L").";
-            MessageBoxW(nullptr, msg.c_str(), L"MicDup", MB_ICONINFORMATION);
-        }
-        return;
-    }
-
-    auto tag_w = std::wstring(release->tag.begin(), release->tag.end());
-    auto ver_w = std::wstring(MICDUP_VERSION, MICDUP_VERSION + strlen(MICDUP_VERSION));
-    auto msg = L"A new version is available: " + tag_w +
-               L"\nCurrent version: v" + ver_w +
-               L"\n\nDownload and install the update?";
-
-    if (MessageBoxW(nullptr, msg.c_str(), L"MicDup Update", MB_YESNO | MB_ICONINFORMATION) != IDYES)
-        return;
-
-    tray_notify(L"MicDup", L"Downloading update...");
-    if (download_and_apply_update(*release)) {
-        PostQuitMessage(0);
-    } else {
-        MessageBoxW(nullptr, L"Update failed. Try again later or download from GitHub.",
-                    L"MicDup", MB_ICONWARNING);
     }
 }
 

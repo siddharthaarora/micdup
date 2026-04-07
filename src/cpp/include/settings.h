@@ -94,6 +94,9 @@ std::string get_appdata_dir();
 std::string get_models_dir();
 #endif
 
+/// Returns the current compiled-in version string.
+const char* app_version();
+
 /// Format modifier flags as human-readable string (e.g. "Ctrl + Shift").
 std::string format_modifiers(uint32_t mods);
 

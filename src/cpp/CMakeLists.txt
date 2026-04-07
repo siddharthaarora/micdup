@@ -80,7 +80,6 @@ if(WIN32)
         src/settings.cpp
         src/settings_dialog.cpp
         src/model_downloader.cpp
-        src/updater.cpp
         src/icons.cpp
         src/log.cpp
     )
@@ -95,7 +94,6 @@ elseif(APPLE)
         src/settings_mac.mm
         src/settings_dialog_mac.mm
         src/model_downloader_mac.mm
-        src/updater_mac.mm
         src/icons_mac.mm
         src/log_mac.mm
     )

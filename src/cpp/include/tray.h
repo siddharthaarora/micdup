@@ -17,7 +17,6 @@ enum class TrayState { Idle, Recording, Processing, Success, Error };
 struct TrayCallbacks {
     std::function<void()> on_start_stop;
     std::function<void()> on_settings;
-    std::function<void()> on_check_updates;
     std::function<void()> on_exit;
 };
 

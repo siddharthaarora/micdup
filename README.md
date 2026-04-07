@@ -74,7 +74,6 @@ First run downloads the Whisper model (~150MB for "base"). After that, no intern
 - **Clipboard Integration** — Text always copied to clipboard
 - **GPU Acceleration** — Vulkan on Windows, Metal on macOS
 - **Multiple Model Sizes** — Choose between speed (tiny) and accuracy (large)
-- **Auto-Update** — Checks GitHub releases and updates in-place
 - **Zero Dependencies** — Single static binary, no runtime needed
 
 ---

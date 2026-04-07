@@ -12,6 +12,10 @@
 
 namespace micdup {
 
+const char* app_version() {
+    return MICDUP_VERSION;
+}
+
 // ── Path helpers ────────────────────────────────────────────────────────
 
 static std::wstring get_known_folder(int csidl) {

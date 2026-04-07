@@ -5,6 +5,8 @@
 #include <mutex>
 #include <fstream>
 #include <cstring>
+#include <vector>
+#include <cmath>
 
 namespace micdup {
 
@@ -15,12 +17,12 @@ static constexpr uint16_t BITS        = 16;      // 16-bit PCM
 
 // ── State ───────────────────────────────────────────────────────────────
 
-static AVAudioEngine*    g_engine    = nil;
-static std::ofstream     g_file;
-static std::string       g_path;
-static std::mutex        g_mutex;
-static bool              g_recording = false;
-static uint32_t          g_data_bytes = 0;
+static AVAudioEngine*     g_engine    = nil;
+static std::ofstream      g_file;
+static std::string        g_path;
+static std::mutex         g_mutex;
+static bool               g_recording = false;
+static uint32_t           g_data_bytes = 0;
 
 // ── WAV header ──────────────────────────────────────────────────────────
 
@@ -91,27 +93,55 @@ bool audio_start_recording(const std::string& output_path) {
         g_engine = [[AVAudioEngine alloc] init];
         AVAudioInputNode* inputNode = [g_engine inputNode];
 
-        // Create format: 16 kHz, mono, 16-bit integer PCM
-        AVAudioFormat* recordFormat = [[AVAudioFormat alloc]
-            initWithCommonFormat:AVAudioPCMFormatInt16
-            sampleRate:SAMPLE_RATE
-            channels:CHANNELS
-            interleaved:YES];
+        // Use the input node's native output format for the tap
+        AVAudioFormat* inputFormat = [inputNode outputFormatForBus:0];
+        double inputRate = inputFormat.sampleRate;
+        uint32_t inputChannels = (uint32_t)inputFormat.channelCount;
+        log_info("Input format: {} Hz, {} channels", (int)inputRate, inputChannels);
 
-        // Install tap on the input node
+        // Install tap using the input node's native format
+        // We'll downsample and convert to mono int16 manually
         [inputNode installTapOnBus:0
             bufferSize:4096
-            format:recordFormat
+            format:inputFormat
             block:^(AVAudioPCMBuffer* buffer, AVAudioTime* when) {
-                std::lock_guard tapLock(g_mutex);
-                if (!g_recording || !g_file.is_open()) return;
+                @autoreleasepool {
+                    std::lock_guard tapLock(g_mutex);
+                    if (!g_recording || !g_file.is_open()) return;
 
-                auto* data = buffer.int16ChannelData;
-                if (!data) return;
+                    const float* const* floatData = buffer.floatChannelData;
+                    if (!floatData) return;
 
-                uint32_t bytes = buffer.frameLength * sizeof(int16_t);
-                g_file.write(reinterpret_cast<const char*>(data[0]), bytes);
-                g_data_bytes += bytes;
+                    AVAudioFrameCount frameCount = buffer.frameLength;
+                    double ratio = inputRate / (double)SAMPLE_RATE;
+
+                    // Downsample: pick every ratio-th sample, mix to mono
+                    AVAudioFrameCount outFrames = (AVAudioFrameCount)(frameCount / ratio);
+                    if (outFrames == 0) return;
+
+                    std::vector<int16_t> samples(outFrames);
+                    for (AVAudioFrameCount i = 0; i < outFrames; i++) {
+                        double srcIdx = i * ratio;
+                        AVAudioFrameCount idx = (AVAudioFrameCount)srcIdx;
+                        if (idx >= frameCount) idx = frameCount - 1;
+
+                        // Mix all channels to mono
+                        float sample = 0.0f;
+                        for (uint32_t ch = 0; ch < inputChannels; ch++) {
+                            sample += floatData[ch][idx];
+                        }
+                        sample /= (float)inputChannels;
+
+                        // Clamp and convert to int16
+                        if (sample > 1.0f) sample = 1.0f;
+                        if (sample < -1.0f) sample = -1.0f;
+                        samples[i] = (int16_t)(sample * 32767.0f);
+                    }
+
+                    uint32_t bytes = outFrames * sizeof(int16_t);
+                    g_file.write(reinterpret_cast<const char*>(samples.data()), bytes);
+                    g_data_bytes += bytes;
+                }
             }];
 
         NSError* error = nil;

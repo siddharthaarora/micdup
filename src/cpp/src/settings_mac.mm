@@ -8,6 +8,10 @@
 
 namespace micdup {
 
+const char* app_version() {
+    return MICDUP_VERSION;
+}
+
 // ── Path helpers ────────────────────────────────────────────────────────
 
 std::string get_appdata_dir() {
