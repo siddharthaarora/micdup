@@ -73,14 +73,21 @@ void* create_recording_icon() {
     NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(ICON_SIZE, ICON_SIZE)];
     [image lockFocus];
 
-    // Red circle background
+    // Red rounded-square background (same shape as idle so it fully replaces it)
     NSRect bgRect = NSMakeRect(0.5, 0.5, ICON_SIZE - 1, ICON_SIZE - 1);
-    NSBezierPath* bg = [NSBezierPath bezierPathWithOvalInRect:bgRect];
+    NSBezierPath* bg = [NSBezierPath bezierPathWithRoundedRect:bgRect xRadius:3.5 yRadius:3.5];
     [[NSColor colorWithCalibratedRed:0.92 green:0.1 blue:0.1 alpha:1.0] setFill];
     [bg fill];
 
-    // White microphone
-    draw_mic([NSColor whiteColor], ICON_SIZE / 2, ICON_SIZE / 2, 1.0);
+    // White recording dot in the centre
+    CGFloat dotSize = 7.0;
+    NSRect dotRect = NSMakeRect(
+        (ICON_SIZE - dotSize) / 2,
+        (ICON_SIZE - dotSize) / 2,
+        dotSize, dotSize);
+    NSBezierPath* dot = [NSBezierPath bezierPathWithOvalInRect:dotRect];
+    [[NSColor whiteColor] setFill];
+    [dot fill];
 
     [image unlockFocus];
     [image setTemplate:NO];

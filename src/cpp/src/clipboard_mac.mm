@@ -3,6 +3,8 @@
 #include "clipboard.h"
 #include "log.h"
 
+#include <unistd.h>
+
 namespace micdup {
 
 bool clipboard_set_text(const std::string& text) {
@@ -24,38 +26,33 @@ bool clipboard_set_text(const std::string& text) {
 }
 
 bool is_foreground_text_input() {
-    @autoreleasepool {
-        NSRunningApplication* frontApp =
-            [[NSWorkspace sharedWorkspace] frontmostApplication];
-        return frontApp != nil;
-    }
+    // On macOS we always attempt paste — accessibility will gate it
+    return true;
 }
 
 void clipboard_autopaste() {
     @autoreleasepool {
-        // Short delay to ensure clipboard is settled
-        usleep(100000); // 100ms
+        // Delay to let clipboard settle and target app regain focus
+        usleep(200000); // 200ms
 
         // Simulate Cmd+V using CGEvents
-        CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
+        CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateHIDSystemState);
+        if (!source) {
+            log_error("Failed to create CGEventSource for paste");
+            return;
+        }
 
-        CGEventRef cmdDown = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_Command, true);
-        CGEventRef vDown   = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_ANSI_V, true);
-        CGEventRef vUp     = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_ANSI_V, false);
-        CGEventRef cmdUp   = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_Command, false);
+        CGEventRef vDown = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_ANSI_V, true);
+        CGEventRef vUp   = CGEventCreateKeyboardEvent(source, (CGKeyCode)kVK_ANSI_V, false);
 
         CGEventSetFlags(vDown, kCGEventFlagMaskCommand);
         CGEventSetFlags(vUp,   kCGEventFlagMaskCommand);
 
-        CGEventPost(kCGHIDEventTap, cmdDown);
-        CGEventPost(kCGHIDEventTap, vDown);
-        CGEventPost(kCGHIDEventTap, vUp);
-        CGEventPost(kCGHIDEventTap, cmdUp);
+        CGEventPost(kCGAnnotatedSessionEventTap, vDown);
+        CGEventPost(kCGAnnotatedSessionEventTap, vUp);
 
-        CFRelease(cmdDown);
         CFRelease(vDown);
         CFRelease(vUp);
-        CFRelease(cmdUp);
         CFRelease(source);
 
         log_info("Auto-paste executed (Cmd+V)");
