@@ -104,13 +104,25 @@ set(MICDUP_SOURCES ${MICDUP_COMMON_SOURCES} ${MICDUP_PLATFORM_SOURCES})
 if(WIN32)
     add_executable(MicDup WIN32 ${MICDUP_SOURCES})
 elseif(APPLE)
-    add_executable(MicDup MACOSX_BUNDLE ${MICDUP_SOURCES})
+    # Generate app icon
+    set(ICON_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    set(ICON_FILE "${ICON_OUTPUT_DIR}/AppIcon.icns")
+    add_custom_command(
+        OUTPUT "${ICON_FILE}"
+        COMMAND swift "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_icon.swift" "${ICON_OUTPUT_DIR}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_icon.swift"
+        COMMENT "Generating app icon..."
+    )
+
+    add_executable(MicDup MACOSX_BUNDLE ${MICDUP_SOURCES} "${ICON_FILE}")
+    set_source_files_properties("${ICON_FILE}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(MicDup PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.micdup.app"
         MACOSX_BUNDLE_BUNDLE_NAME "MicDup"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
+        MACOSX_BUNDLE_ICON_FILE "AppIcon"
     )
 endif()
 
