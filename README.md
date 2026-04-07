@@ -37,22 +37,29 @@ Your voice stays on your machine. Period.
 
 1. Download `MicDup-vX.X.X-win-x64-cpu.zip` from [Releases](https://github.com/siddharthaarora/micdup/releases)
 2. Extract `MicDup.exe` anywhere
-3. Run it — a microphone icon appears in your system tray
-4. Press **Ctrl+Shift+Space** to start recording
-5. Speak
-6. Press **Ctrl+Shift+Space** again
-7. Your text is in the clipboard (and auto-pasted if a text field is focused)
+3. Run it — Windows may show a **"Windows protected your PC"** SmartScreen warning since the app is not code-signed:
+   - Click **"More info"**
+   - Click **"Run anyway"**
+4. A microphone icon appears in your system tray
+5. Press **Ctrl+Shift+Space** to start recording
+6. Speak
+7. Press **Ctrl+Shift+Space** again
+8. Your text is in the clipboard (and auto-pasted if a text field is focused)
 
 ### macOS
 
 1. Download `MicDup-vX.X.X-mac-arm64.zip` (Apple Silicon) or `MicDup-vX.X.X-mac-x64.zip` (Intel) from [Releases](https://github.com/siddharthaarora/micdup/releases)
 2. Extract `MicDup.app` and move it to Applications
-3. Run it — a microphone icon appears in your menu bar
-4. Grant microphone permission when prompted
-5. Press **Cmd+Shift+Space** to start recording
-6. Speak
-7. Press **Cmd+Shift+Space** again
-8. Your text is in the clipboard (and auto-pasted if a text field is focused)
+3. **Remove the quarantine flag** (required because the app is not notarized):
+   ```bash
+   xattr -cr /Applications/MicDup.app
+   ```
+4. Run it — macOS will ask for **microphone permission**, click Allow
+5. A microphone icon appears in your menu bar
+6. Press **Cmd+Shift+Space** to start recording
+7. Speak
+8. Press **Cmd+Shift+Space** again
+9. Your text is in the clipboard (and auto-pasted if a text field is focused)
 
 First run downloads the Whisper model (~150MB for "base"). After that, no internet is needed.
 
